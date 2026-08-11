@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>James — Mechanical Engineering Portfolio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper: #F7F6F2;
+    --paper-line: #EFEDE7;
+    --graphite: #24262B;
+    --graphite-soft: #5B5F66;
+    --redline: #C1401F;
+    --blueprint: #35586B;
+    --hairline: #D8D5CC;
+    --font-display: 'Space Grotesk', sans-serif;
+    --font-body: 'IBM Plex Sans', sans-serif;
+    --font-mono: 'IBM Plex Mono', monospace;
+  }
+
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+
+  body{
+    margin: 0;
+    background: var(--paper);
+    color: var(--graphite);
+    font-family: var(--font-body);
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  a { color: var(--blueprint); text-decoration: none; }
+  a:hover { color: var(--redline); }
+  a:focus-visible, button:focus-visible { outline: 2px solid var(--redline); outline-offset: 3px; }
+
+  /* ---------- corner crop marks (drawing-sheet trim marks) ---------- */
+  .crop { position: fixed; width: 18px; height: 18px; z-index: 40; pointer-events: none; opacity: .55; }
+  .crop::before, .crop::after { content: ""; position: absolute; background: var(--graphite); }
+  .crop::before { width: 100%; height: 1px; top: 0; left: 0; }
+  .crop::after  { width: 1px; height: 100%; top: 0; left: 0; }
+  .crop-tl { top: 10px; left: 10px; }
+  .crop-tr { top: 10px; right: 10px; transform: scaleX(-1); }
+  .crop-bl { bottom: 10px; left: 10px; transform: scaleY(-1); }
+  .crop-br { bottom: 10px; right: 10px; transform: scale(-1,-1); }
+
+  /* ---------- title block header / nav ---------- */
+  .titleblock{
+    position: sticky; top: 0; z-index: 30;
+    background: var(--paper);
+    border-bottom: 1.5px solid var(--graphite);
+    display: grid;
+    grid-template-columns: 1.4fr 1fr 1fr;
+    grid-template-rows: auto auto;
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.04em;
+  }
+  .tb-cell{
+    padding: 10px 16px;
+    border-left: 1px solid var(--hairline);
+  }
+  .tb-name{
+    grid-row: 1 / 3;
+    display: flex; flex-direction: column; justify-content: center;
+    border-left: none;
+    font-family: var(--font-display);
+    font-size: 1.05rem;
+    font-weight: 600;
+    letter-spacing: 0;
+    text-transform: none;
+  }
+  .tb-role{
+    grid-column: 2 / 4;
+    color: var(--graphite-soft);
+    text-transform: uppercase;
+    display: flex; align-items: center;
+  }
+  .tb-nav{
+    grid-column: 2 / 3;
+    display: flex; align-items: center; gap: 18px;
+    border-left: 1px solid var(--hairline);
+    border-top: 1px solid var(--hairline);
+    padding: 8px 16px;
+  }
+  .tb-nav a{ color: var(--graphite); text-transform: uppercase; }
+  .tb-nav a:hover{ color: var(--redline); }
+  .tb-meta{
+    grid-column: 3 / 4;
+    border-top: 1px solid var(--hairline);
+    color: var(--graphite-soft);
+    text-transform: uppercase;
+    display: flex; align-items: center;
+  }
+
+  @media (max-width: 720px){
+    .titleblock{ grid-template-columns: 1fr; grid-template-rows: auto auto auto auto; }
+    .tb-cell, .tb-nav, .tb-meta{ border-left: none; border-top: 1px solid var(--hairline); grid-column: 1 / 2; }
+    .tb-name{ grid-row: auto; border-top: none; }
+  }
+
+  main{ max-width: 920px; margin: 0 auto; padding: 0 24px; }
+
+  /* ---------- hero ---------- */
+  .hero{ padding: 96px 0 72px; border-bottom: 1px solid var(--hairline); }
+  .hero h1{
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: clamp(1.8rem, 4vw, 2.7rem);
+    line-height: 1.15;
+    margin: 0 0 20px;
+    max-width: 16ch;
+  }
+  .hero .accent{ color: var(--redline); }
+  .hero-sub{
+    font-size: 1.05rem;
+    color: var(--graphite-soft);
+    max-width: 55ch;
+    margin: 0 0 32px;
+  }
+  .hero-links{ display: flex; gap: 12px; flex-wrap: wrap; }
+  .btn{
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    padding: 11px 20px;
+    border: 1.5px solid var(--graphite);
+    display: inline-block;
+    transition: background-color .15s ease, color .15s ease, border-color .15s ease;
+  }
+  .btn-primary{ background: var(--graphite); color: var(--paper); }
+  .btn-primary:hover{ background: var(--redline); border-color: var(--redline); color: var(--paper); }
+  .btn-outline{ color: var(--graphite); }
+  .btn-outline:hover{ border-color: var(--redline); color: var(--redline); }
+
+  /* ---------- section eyebrow ---------- */
+  .section-eyebrow{
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--redline);
+    margin: 0 0 28px;
+    padding-top: 56px;
+    display: flex; align-items: center; gap: 12px;
+  }
+  .section-eyebrow::after{ content: ""; flex: 1; height: 1px; background: var(--hairline); }
+
+  /* ---------- project cards ---------- */
+  .projects{ padding-bottom: 24px; }
+  .project-card{
+    border: 1px solid var(--hairline);
+    margin-bottom: 28px;
+    opacity: 0; transform: translateY(14px);
+    transition: opacity .5s ease, transform .5s ease, border-color .2s ease;
+  }
+  .project-card.in-view{ opacity: 1; transform: translateY(0); }
+  .project-card:hover{ border-color: var(--graphite); }
+
+  .pc-head{
+    display: flex; justify-content: space-between; align-items: baseline;
+    gap: 16px; flex-wrap: wrap;
+    padding: 20px 24px; border-bottom: 1px solid var(--hairline);
+  }
+  .pc-head h3{
+    font-family: var(--font-display); font-weight: 600;
+    font-size: 1.3rem; margin: 0;
+  }
+  .pc-tags{ display: flex; gap: 8px; flex-wrap: wrap; }
+  .tag{
+    font-family: var(--font-mono); font-size: 0.68rem; letter-spacing: 0.03em;
+    text-transform: uppercase; color: var(--blueprint);
+    border: 1px solid var(--blueprint); padding: 3px 8px;
+  }
+
+  .pc-media{
+    margin: 20px 24px 0;
+    border: 1px dashed var(--hairline);
+    background: var(--paper-line);
+    min-height: 200px;
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--font-mono); font-size: 0.72rem; color: var(--graphite-soft);
+    text-align: center; padding: 12px;
+  }
+
+  .pc-body{ padding: 24px; display: grid; gap: 20px; }
+  .pc-field .field-label{
+    font-family: var(--font-mono); font-size: 0.7rem; letter-spacing: 0.08em;
+    text-transform: uppercase; color: var(--graphite-soft); margin-bottom: 6px;
+  }
+  .pc-field p{ margin: 0; }
+  .pc-field ul{ margin: 6px 0 0; padding-left: 20px; }
+
+  .project-card.placeholder{
+    border-style: dashed;
+    display: flex; align-items: center; justify-content: center;
+    min-height: 160px;
+    font-family: var(--font-mono); color: var(--graphite-soft); font-size: 0.85rem;
+    text-transform: uppercase; letter-spacing: 0.04em;
+    cursor: default;
+  }
+
+  /* ---------- about / skills ---------- */
+  .about{ padding-bottom: 24px; }
+  .about p{ max-width: 65ch; }
+  .skill-tags{ display: flex; gap: 8px; flex-wrap: wrap; margin-top: 20px; }
+  .skill-tags .tag{ color: var(--graphite); border-color: var(--graphite); }
+  .skill-tags .tag:hover{ color: var(--redline); border-color: var(--redline); }
+
+  /* ---------- footer / signature block ---------- */
+  footer{
+    margin-top: 64px;
+    border-top: 1.5px solid var(--graphite);
+    padding: 28px 24px 40px;
+    font-family: var(--font-mono); font-size: 0.75rem;
+    color: var(--graphite-soft);
+    display: flex; justify-content: space-between; flex-wrap: wrap; gap: 12px;
+  }
+  footer a{ color: var(--graphite); }
+  footer a:hover{ color: var(--redline); }
+
+  @media (prefers-reduced-motion: reduce){
+    .project-card, html { transition: none !important; scroll-behavior: auto !important; }
+    .project-card{ opacity: 1; transform: none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="crop crop-tl"></div>
+<div class="crop crop-tr"></div>
+<div class="crop crop-bl"></div>
+<div class="crop crop-br"></div>
+
+<header class="titleblock">
+  <div class="tb-cell tb-name"><!-- EDIT: your name --> James [Last Name]</div>
+  <div class="tb-cell tb-role">Mechanical Engineering — B.S. Candidate</div>
+  <nav class="tb-nav">
+    <a href="#projects">Projects</a>
+    <a href="#about">About</a>
+    <a href="#contact">Contact</a>
+  </nav>
+  <div class="tb-cell tb-meta">Sheet 1 of 1 &nbsp;·&nbsp; Rev A &nbsp;·&nbsp; <span id="tb-date"></span></div>
+</header>
+
+<main>
+
+  <section class="hero">
+    <h1>I design things that have to work <span class="accent">the first time</span> — in the air, in a river, on the bench.</h1>
+    <p class="hero-sub">
+      <!-- EDIT: one or two sentences on your actual focus/interests -->
+      Second-year mechanical engineering student focused on design for performance under real constraints —
+      aerodynamics, structural trade-offs, and manufacturability. Currently split between an aircraft interceptor-inspired
+      quadcopter and a river engineering internship applying hydraulic modeling to post-flood infrastructure recovery.
+    </p>
+    <div class="hero-links">
+      <a class="btn btn-primary" href="#projects">View projects</a>
+      <a class="btn btn-outline" href="#" target="_blank"><!-- EDIT: link to resume PDF -->Resume (PDF)</a>
+      <a class="btn btn-outline" href="#" target="_blank"><!-- EDIT: link to your GitHub -->GitHub</a>
+    </div>
+  </section>
+
+  <section id="projects" class="projects">
+    <div class="section-eyebrow">Projects</div>
+
+    <!-- PROJECT 1: bullet-fuselage quadcopter -->
+    <article class="project-card">
+      <div class="pc-head">
+        <h3>Bullet-Fuselage Interceptor Quadcopter</h3>
+        <div class="pc-tags">
+          <span class="tag">SolidWorks</span>
+          <span class="tag">3D Printing</span>
+          <span class="tag">Aerodynamics</span>
+        </div>
+      </div>
+      <div class="pc-media">
+        <!-- EDIT: replace with a CAD render or build photo -->
+        [ Image — CAD render or build photo goes here ]
+      </div>
+      <div class="pc-body">
+        <div class="pc-field">
+          <div class="field-label">Objective</div>
+          <p>Design a cylindrical, bullet-shaped quadcopter — modeled after Ukrainian interceptor drones — optimized
+          for efficient forward cruise rather than pure hover, with an eye toward eventual humanitarian payload delivery.</p>
+        </div>
+        <div class="pc-field">
+          <div class="field-label">Constraints</div>
+          <ul>
+            <li>Modular three-section body for manufacturability and repair-in-the-field access</li>
+            <li>Tractor motor configuration for cruise efficiency over hover-optimized layouts</li>
+            <li>5-inch props, 1900kv motors — <!-- EDIT: add your actual weight/power budget once locked in --></li>
+          </ul>
+        </div>
+        <div class="pc-field">
+          <div class="field-label">Key decisions</div>
+          <p>Center of gravity placed at or below the thrust plane for passive pendulum stability. Arms use a
+          shear-taper airfoiled planform at roughly 20° sweep in the current design, weighed against a simpler
+          straight rectangular carbon-fiber-filled arm — the latter wins for a faster, high-speed proof-of-concept
+          build despite the aerodynamic trade-off. Tail fins rotated 45° relative to the arms for prop clearance.
+          Payload is released via a multi-bay sequential mechanism rather than a single drop, for controlled,
+          staged delivery.</p>
+        </div>
+        <div class="pc-field">
+          <div class="field-label">Iteration</div>
+          <p><!-- EDIT: describe a specific redesign or failed print/test and what you changed because of it --></p>
+        </div>
+        <div class="pc-field">
+          <div class="field-label">Status / result</div>
+          <p><!-- EDIT: current status — e.g. parts list, first flight, test data --> ESC, battery, flight controller,
+          and receiver selection in progress; parts list nearing finalization.</p>
+        </div>
+        <div class="pc-field">
+          <div class="field-label">Retrospective</div>
+          <p><!-- EDIT: what you'd do differently, once you have flight data --></p>
+        </div>
+      </div>
+    </article>
+
+    <!-- PROJECT 2: flying wing -->
+    <article class="project-card">
+      <div class="pc-head">
+        <h3>3D-Printed Flying Wing (B-2 Style)</h3>
+        <div class="pc-tags">
+          <span class="tag">ArduPilot</span>
+          <span class="tag">RC Aircraft</span>
+          <span class="tag">3D Printing</span>
+        </div>
+      </div>
+      <div class="pc-media">
+        <!-- EDIT: replace with a build or flight photo -->
+        [ Image — build or flight photo goes here ]
+      </div>
+      <div class="pc-body">
+        <div class="pc-field">
+          <div class="field-label">Objective</div>
+          <p>Build a ~1m-wingspan, single pusher-motor flying wing as a first full aircraft project and a
+          deliberate stepping stone toward an eventual tail-sitter VTOL design.</p>
+        </div>
+        <div class="pc-field">
+          <div class="field-label">Constraints</div>
+          <ul>
+            <li>Fully 3D-printed airframe</li>
+            <li>Off-the-shelf flight stack: ArduPilot on a Matek F405-Wing controller</li>
+            <li>RadioMaster transmitter with ExpressLRS, 4S LiPo power</li>
+          </ul>
+        </div>
+        <div class="pc-field">
+          <div class="field-label">Key decisions</div>
+          <p>Chose a tailless flying-wing layout specifically to build fluency in ArduPilot tuning and
+          reflex/elevon control before attempting the added complexity of a tail-sitter VTOL transition.</p>
+        </div>
+        <div class="pc-field">
+          <div class="field-label">Iteration</div>
+          <p><!-- EDIT: a specific print failure, CG issue, or tuning problem you solved --></p>
+        </div>
+        <div class="pc-field">
+          <div class="field-label">Result</div>
+          <p><!-- EDIT: flight test outcome, flight time, stability notes --></p>
+        </div>
+        <div class="pc-field">
+          <div class="field-label">Retrospective</div>
+          <p><!-- EDIT: what carried forward into the quadcopter project, what you'd change --></p>
+        </div>
+      </div>
+    </article>
+
+    <!-- Duplicate this block for each new project -->
+    <article class="project-card placeholder">
+      + Add another project
+    </article>
+
+  </section>
+
+  <section id="about" class="about">
+    <div class="section-eyebrow">About</div>
+    <p>
+      <!-- EDIT: 3-5 sentences about you — background, what you're drawn to, where you're headed -->
+      I'm a mechanical engineering student interested in design engineering, particularly at the intersection
+      of aerodynamics and structural trade-offs. Alongside coursework, I'm a river engineering intern at Southwest
+      River Engineering in Pagosa Springs, CO, where I work on Civil 3D drafting, HEC-RAS hydraulic modeling, and
+      USACE permitting for post-flood recovery projects.
+    </p>
+    <div class="skill-tags">
+      <span class="tag">SolidWorks</span>
+      <span class="tag">Civil 3D</span>
+      <span class="tag">HEC-RAS</span>
+      <span class="tag">ArduPilot</span>
+      <span class="tag">Bambu Studio / 3D Printing</span>
+      <!-- EDIT: add/remove skills -->
+    </div>
+  </section>
+
+</main>
+
+<footer id="contact">
+  <div>© <span id="year"></span> James [Last Name] <!-- EDIT --></div>
+  <div>
+    <a href="mailto:you@email.com">Email</a> &nbsp;·&nbsp;
+    <a href="#" target="_blank">GitHub</a> &nbsp;·&nbsp;
+    <a href="#" target="_blank">LinkedIn</a>
+    <!-- EDIT: fill in your real links -->
+  </div>
+</footer>
+
+<script>
+  document.getElementById('year').textContent = new Date().getFullYear();
+  document.getElementById('tb-date').textContent = new Date().toLocaleDateString('en-US', { month: '2-digit', year: 'numeric' });
+
+  const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (!prefersReduced && 'IntersectionObserver' in window) {
+    const cards = document.querySelectorAll('.project-card');
+    const io = new IntersectionObserver((entries) => {
+      entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('in-view'); });
+    }, { threshold: 0.15 });
+    cards.forEach(c => io.observe(c));
+  } else {
+    document.querySelectorAll('.project-card').forEach(c => c.classList.add('in-view'));
+  }
+</script>
+
+</body>
+</html>
