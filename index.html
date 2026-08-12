@@ -162,11 +162,13 @@
   .project-card:hover{ border-color: var(--graphite); }
 
   .pc-head{
-    display: flex; justify-content: space-between; align-items: flex-start;
-    gap: 16px; flex-wrap: wrap;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: flex-start;
+    gap: 16px;
     padding: 20px 24px; border-bottom: 1px solid var(--hairline);
   }
-  .pc-head-text{ display: flex; flex-direction: column; gap: 5px; }
+  .pc-head-text{ display: flex; flex-direction: column; gap: 5px; min-width: 0; }
   .pc-head h3{
     font-family: var(--font-display); font-weight: 600;
     font-size: 1.3rem; margin: 0;
@@ -176,11 +178,16 @@
     text-transform: uppercase; letter-spacing: 0.03em;
     color: var(--graphite-soft);
   }
-  .pc-tags{ display: flex; gap: 8px; flex-wrap: wrap; }
+  .pc-tags{ display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
   .tag{
     font-family: var(--font-mono); font-size: 0.68rem; letter-spacing: 0.03em;
     text-transform: uppercase; color: var(--blueprint);
     border: 1px solid var(--blueprint); padding: 3px 8px;
+  }
+
+  @media (max-width: 560px){
+    .pc-head{ grid-template-columns: 1fr; }
+    .pc-tags{ justify-content: flex-start; }
   }
 
   .pc-media{
@@ -669,7 +676,7 @@
         </div>
         <div class="pc-tags">
           <span class="tag">3D Printing</span>
-          <span class="tag">Laser Cutting</span>
+          <span class="tag">Onshape</span>
           <span class="tag">Rapid Prototyping</span>
         </div>
       </div>
