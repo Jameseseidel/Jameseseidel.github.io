@@ -1,0 +1,1977 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>James Seidel — Mechanical Engineering Portfolio</title>
+<meta name="description" content="James Seidel — mechanical engineering student at UT Austin. VTOL drones, combat robots, competition aircraft mechanisms, and product design.">
+<link rel="icon" href="images/Logo_2.png">
+<script>
+  (function () {
+    var t = null;
+    try { t = localStorage.getItem('theme'); } catch (e) {}
+    if (!t) t = (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light';
+    document.documentElement.setAttribute('data-theme', t);
+  })();
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..800&family=Caveat:wght@500..700&family=Permanent+Marker&family=VT323&display=swap" rel="stylesheet">
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/STLLoader.js"></script>
+
+<style>
+  /* ============================================================
+     TOKENS — "shop lights on" / "shop lights off"
+     ============================================================ */
+  :root[data-theme="light"] {
+    --board: #E6E0D4;          /* painted pegboard */
+    --board-shade: #D9D2C4;
+    --hole: rgba(58, 48, 36, 0.30);
+    --paper: #FBFAF6;
+    --paper-2: #F3F0E8;
+    --ink: #1C1E21;
+    --ink-muted: #4B4F55;
+    --ink-faint: #7A7E84;
+    --line: #D6CFC1;
+    --accent: #BF5700;         /* burnt-orange PLA */
+    --accent-deep: #9A4600;
+    --accent-fill: #BF5700;    /* buttons, label tape, model */
+    --accent-soft: rgba(191, 87, 0, 0.12);
+    --label-bg: #1C1E21;       /* label-maker tape */
+    --label-ink: #F6F4EF;
+    --shadow: rgba(40, 30, 18, 0.16);
+    --shadow-lift: rgba(40, 30, 18, 0.26);
+  }
+  :root[data-theme="dark"] {
+    --board: #24272B;
+    --board-shade: #1E2124;
+    --hole: rgba(0, 0, 0, 0.62);
+    --paper: #2B2F35;
+    --paper-2: #33383F;
+    --ink: #ECEAE5;
+    --ink-muted: #AEB3BA;
+    --ink-faint: #858B93;
+    --line: #3E444C;
+    --accent: #E0701F;         /* text/links: deeper orange, still readable on dark */
+    --accent-deep: #A34A00;
+    --accent-fill: #BF5700;    /* true UT burnt orange for fills */
+    --accent-soft: rgba(191, 87, 0, 0.22);
+    --label-bg: #F2EFE8;
+    --label-ink: #1C1E21;
+    --shadow: rgba(0, 0, 0, 0.45);
+    --shadow-lift: rgba(0, 0, 0, 0.65);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; }
+  html { scroll-behavior: smooth; scroll-padding-top: 84px; }
+  body {
+    margin: 0;
+    padding-left: 54px;
+    color: var(--ink);
+    font-family: 'Archivo', system-ui, sans-serif;
+    font-size: 16.5px;
+    line-height: 1.62;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+    /* pegboard: 1/4" holes on a 1" grid */
+    background-color: var(--board);
+    background-image:
+      radial-gradient(circle at 50% 50%, var(--hole) 0 3.2px, transparent 3.9px),
+      linear-gradient(180deg, transparent, var(--board-shade));
+    background-size: 28px 28px, 100% 100%;
+    background-position: 14px 14px, 0 0;
+  }
+  a { color: var(--accent); }
+  :focus-visible { outline: 2.5px solid var(--accent); outline-offset: 3px; border-radius: 4px; }
+  img { max-width: 100%; }
+
+  .wrap { max-width: 1280px; margin: 0 auto; padding: 0 40px; position: relative; }
+
+  /* ============================================================
+     LEFT RAIL — digital caliper; the slider tracks scroll
+     ============================================================ */
+  .rail {
+    position: fixed; left: 0; top: 0; bottom: 0; width: 54px; z-index: 250;
+    background: var(--board-shade);
+    box-shadow: 2px 0 10px rgba(0,0,0,0.14);
+  }
+  .beam {
+    position: absolute; top: 0; bottom: 0; left: 10px; width: 30px;
+    background: linear-gradient(90deg, #8F969D, #E3E6E9 35%, #C3C8CD 70%, #959CA3);
+    box-shadow: inset -1px 0 0 #6E757C, inset 1px 0 0 #A9AFB5;
+  }
+  .beam-scale { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+  .jaw-fixed { position: absolute; top: 0; left: 10px; width: 62px; height: 30px; overflow: visible; filter: drop-shadow(0 2px 2px rgba(0,0,0,.3)); }
+  .slider { position: absolute; left: 3px; top: 30px; width: 70px; height: 92px; will-change: transform; cursor: grab; touch-action: none; }
+  .slider:hover .slider-body { background: linear-gradient(90deg, #34393F, #535960 50%, #34393F); }
+  .rail.dragging, .rail.dragging .slider { cursor: grabbing; }
+  .rail { cursor: pointer; user-select: none; -webkit-user-select: none; }
+  .slider-body {
+    position: absolute; left: 0; top: 0; width: 48px; height: 92px; border-radius: 6px;
+    background: linear-gradient(90deg, #2C3035, #474C52 50%, #2C3035);
+    box-shadow: 0 3px 6px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.12);
+  }
+  .slider-jaw { position: absolute; left: 30px; top: 0; width: 40px; height: 22px; overflow: visible; filter: drop-shadow(0 2px 2px rgba(0,0,0,.3)); }
+  .slider-lcd {
+    position: absolute; left: 5px; top: 28px; width: 38px; height: 22px; border-radius: 3px;
+    background: #B9C2A6; box-shadow: inset 0 1px 2px rgba(0,0,0,.45);
+    font-family: 'VT323', monospace; font-size: 15px; line-height: 22px; text-align: right; padding-right: 3px; color: #1D2219;
+  }
+  .slider-unit { position: absolute; left: 5px; top: 52px; width: 38px; text-align: right; font-size: 8px; font-weight: 700; color: #C9CED3; letter-spacing: .04em; }
+  .slider-wheel { position: absolute; left: 16px; top: 66px; width: 16px; height: 16px; border-radius: 50%; background: repeating-conic-gradient(#9BA2A9 0 12deg, #5E656C 12deg 24deg); box-shadow: 0 1px 2px rgba(0,0,0,.4); }
+
+  /* ============================================================
+     HEADER
+     ============================================================ */
+  header.site {
+    position: sticky; top: 0; z-index: 150;
+    background: color-mix(in srgb, var(--paper) 94%, transparent);
+    backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--line);
+    box-shadow: 0 2px 14px var(--shadow);
+  }
+  .nav { height: 64px; display: flex; align-items: center; justify-content: space-between; gap: 18px; }
+  .brand { display: flex; align-items: center; gap: 12px; text-decoration: none; color: var(--ink); min-width: 0; }
+  .brand img { width: 32px; height: 32px; object-fit: contain; }
+  .brand span { font-stretch: 125%; font-weight: 800; font-size: 1.15rem; letter-spacing: -0.01em; white-space: nowrap; }
+  .nav-links { display: flex; align-items: center; gap: 22px; font-weight: 600; font-size: 0.93rem; }
+  .nav-links a { color: var(--ink-muted); text-decoration: none; }
+  .nav-links a:hover { color: var(--accent); }
+  .btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    font: inherit; font-weight: 700; font-size: 0.92rem;
+    padding: 9px 16px; border-radius: 6px; cursor: pointer; text-decoration: none;
+    border: 1.5px solid var(--ink); background: transparent; color: var(--ink);
+    transition: background .15s ease, color .15s ease, border-color .15s ease;
+  }
+  .btn:hover { border-color: var(--accent); color: var(--accent); }
+  .btn.solid { background: var(--accent-fill); border-color: var(--accent-fill); color: #fff; }
+  .btn.solid:hover { background: var(--accent-deep); border-color: var(--accent-deep); color: #fff; }
+
+  /* Rocker switch = theme toggle */
+  .rocker { display: inline-flex; align-items: center; gap: 9px; background: none; border: none; cursor: pointer; padding: 4px; color: var(--ink-muted); font: inherit; font-size: 0.82rem; font-weight: 600; white-space: nowrap; }
+  .rocker-body {
+    width: 26px; height: 36px; border-radius: 5px; position: relative;
+    background: #2A2D31; box-shadow: inset 0 0 0 2px #15171A, 0 2px 4px rgba(0,0,0,.3);
+  }
+  .rocker-body::before {
+    content: ""; position: absolute; left: 4px; right: 4px; top: 4px; height: 14px; border-radius: 3px;
+    background: linear-gradient(#5B6168, #3A3E43); box-shadow: 0 2px 0 #111;
+    transition: top .15s ease;
+  }
+  .rocker-body::after { content: "I"; position: absolute; left: 0; right: 0; top: 4px; text-align: center; font-size: 10px; line-height: 14px; color: #E9E6DF; font-weight: 800; }
+  .rocker[aria-checked="false"] .rocker-body::before { top: 18px; }
+  .rocker[aria-checked="false"] .rocker-body::after { content: "O"; top: 18px; }
+
+  /* ============================================================
+     SHARED PIECES
+     ============================================================ */
+  /* label-maker tape */
+  .ptouch {
+    display: inline-block;
+    background: var(--label-bg); color: var(--label-ink);
+    font-stretch: 112%; font-weight: 700; font-size: 0.8rem; letter-spacing: 0.02em;
+    padding: 3px 12px 4px;
+    clip-path: polygon(4px 0, calc(100% - 4px) 0, 100% 50%, calc(100% - 4px) 100%, 4px 100%, 0 50%);
+    box-shadow: 0 1px 2px rgba(0,0,0,.25);
+    line-height: 1.4;
+  }
+  .ptouch.orange { background: var(--accent-fill); color: #fff; }
+
+  .sharpie { font-family: 'Permanent Marker', cursive; color: var(--accent); font-weight: 400; }
+
+  /* Screw-mounted items: two standoff screws, straighten + expand on hover */
+  .mounted { position: relative; transform: rotate(var(--tilt, 0deg)); transition: transform .25s cubic-bezier(.2,.8,.2,1), box-shadow .25s ease; }
+  .mounted > .standoff { width: 14px; height: 14px; top: 9px; z-index: 3; }
+  .mounted > .standoff::after { inset: 5.5px 2px; }
+  .mounted > .standoff.tl { left: 9px; }
+  .mounted > .standoff.tr { right: 9px; left: auto; }
+  .card.mounted:hover, .card.mounted:focus-visible { transform: rotate(0deg) scale(1.03); z-index: 5; }
+  .panel.mounted:hover { transform: rotate(0deg) scale(1.015); z-index: 5; }
+
+  /* ============================================================
+     OPENING: laser-cut acrylic sign + clipboard photo
+     ============================================================ */
+  .landing { min-height: calc(100vh - 64px); display: flex; align-items: center; padding: 56px 0 70px; position: relative; }
+  .landing-row { display: flex; align-items: center; justify-content: center; gap: 64px; width: 100%; }
+
+  .sign {
+    position: relative; max-width: 700px; width: 100%;
+    padding: 56px 56px 50px;
+    border-radius: 14px;
+    background: color-mix(in srgb, var(--paper) 88%, transparent);
+    border: 1px solid rgba(255,255,255,.55);
+    box-shadow: 0 1px 0 rgba(255,255,255,.6) inset, 0 22px 40px var(--shadow-lift), 0 3px 0 var(--line);
+    backdrop-filter: blur(2px);
+  }
+  :root[data-theme="dark"] .sign { border-color: rgba(255,255,255,.08); box-shadow: 0 22px 40px var(--shadow-lift); }
+  .standoff {
+    position: absolute; width: 18px; height: 18px; border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, #F3F4F5, #A5ABB1 55%, #6C7278);
+    box-shadow: 0 2px 3px rgba(0,0,0,.35);
+  }
+  .standoff::after { content: ""; position: absolute; inset: 7px 3px; background: rgba(0,0,0,.35); border-radius: 1px; transform: rotate(35deg); }
+  .standoff.tl { top: 16px; left: 16px; } .standoff.tr { top: 16px; right: 16px; }
+  .standoff.bl { bottom: 16px; left: 16px; } .standoff.br { bottom: 16px; right: 16px; }
+
+  .sign-kicker { font-weight: 600; color: var(--ink-muted); font-size: 1rem; margin: 0 0 6px; }
+  .sign-name {
+    margin: 0;
+    font-stretch: 125%; font-weight: 800;
+    font-size: clamp(3rem, 7.2vw, 5.6rem);
+    line-height: 0.92; letter-spacing: -0.035em;
+    color: var(--ink);
+    /* engraved look */
+    text-shadow: 0 1px 0 rgba(255,255,255,.5);
+  }
+  :root[data-theme="dark"] .sign-name { text-shadow: none; }
+  .sign-contact { margin: 24px 0 30px; display: grid; grid-template-columns: auto 1fr; gap: 6px 18px; align-items: baseline; font-size: 1.08rem; }
+  .sign-contact dt { font-size: 0.82rem; font-weight: 600; color: var(--ink-faint); }
+  .sign-contact dd { margin: 0; }
+  .sign-contact a { color: var(--ink); font-weight: 600; text-decoration: none; border-bottom: 1.5px solid var(--line); }
+  .sign-contact a:hover { color: var(--accent); border-color: var(--accent); }
+  .sign-actions { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+  .sign-note { position: absolute; right: -6px; bottom: -40px; transform: rotate(-4deg); font-size: 1.05rem; }
+
+  /* Photo clipped to a clipboard, sign-in form underneath */
+  .photo-board {
+    position: relative; width: 360px; flex-shrink: 0; border-radius: 12px; padding: 46px 16px 16px;
+    background: linear-gradient(160deg, #A07A4F, #7F5C37);
+    box-shadow: 0 18px 34px var(--shadow-lift), inset 0 1px 0 rgba(255,255,255,.2);
+    transform: rotate(1.2deg);
+  }
+  .photo-board .clip-metal { z-index: 4; }
+  .photo-sheet { background: var(--paper); border-radius: 4px; padding: 0 22px 20px; box-shadow: 0 1px 2px rgba(0,0,0,.2); }
+  .clipped-photo {
+    position: relative; z-index: 3; margin: -36px 0 0; padding: 10px 10px 12px;
+    background: #FDFDFB; border-radius: 2px; transform: rotate(-3.5deg);
+    box-shadow: 0 8px 18px rgba(0,0,0,.28);
+  }
+  .clipped-photo .frame { height: 300px; background: var(--paper-2); display: flex; align-items: center; justify-content: center; overflow: hidden; }
+  .clipped-photo img { width: 100%; height: 100%; object-fit: cover; object-position: center 15%; display: block; }
+  .clipped-photo .initials { font-stretch: 125%; font-weight: 800; font-size: 3rem; color: var(--accent); }
+  /* Handwritten notes under the photo */
+  .photo-notes { font-family: 'Caveat', cursive; font-weight: 600; font-size: 1.5rem; line-height: 1.25; color: var(--ink); padding: 18px 4px 2px; }
+  .note-top { display: flex; align-items: flex-end; gap: 4px; }
+  .note-arrow { width: 62px; height: 54px; flex-shrink: 0; margin: -10px 0 4px; overflow: visible; }
+  .note-arrow path { fill: none; stroke: var(--accent); stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+  .hand-bullet::before { content: "• "; color: var(--accent); }
+  .hand-list { list-style: none; margin: 6px 0 0; padding: 0; }
+  .hand-list li::before { content: "• "; color: var(--accent); }
+
+  /* ============================================================
+     SECTION HEADS — big label-maker strip as the heading
+     ============================================================ */
+  section { padding: 84px 0; }
+  /* Nav jumps: land with the section title ~28px below the 64px header.
+     html scroll-padding (84) + this margin (-76) puts the section top at 8px,
+     and the section's 84px top padding puts the title at 92px. */
+  section[id] { scroll-margin-top: -76px; }
+  .section-head { margin-bottom: 52px; max-width: 760px; }
+  .section-head h2 {
+    display: inline-block; margin: 0 0 18px;
+    background: var(--label-bg); color: var(--label-ink);
+    font-stretch: 125%; font-weight: 800; font-size: clamp(1.8rem, 3.6vw, 2.6rem); letter-spacing: -0.01em; line-height: 1.1;
+    padding: 8px 26px 10px;
+    clip-path: polygon(10px 0, calc(100% - 10px) 0, 100% 50%, calc(100% - 10px) 100%, 10px 100%, 0 50%);
+    transform: rotate(-0.8deg);
+    filter: drop-shadow(0 2px 2px rgba(0,0,0,.25));
+  }
+  .section-head p {
+    margin: 0; color: var(--ink); font-size: 1.05rem; max-width: 62ch;
+    background: color-mix(in srgb, var(--paper) 82%, transparent); padding: 10px 14px; border-radius: 6px; display: inline-block;
+  }
+
+  /* ============================================================
+     ABOUT — clipboard + printer
+     ============================================================ */
+  .about-grid { display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 56px; align-items: start; }
+  .clipboard {
+    position: relative; border-radius: 12px; padding: 46px 16px 16px;
+    background: linear-gradient(160deg, #A07A4F, #7F5C37);
+    box-shadow: 0 18px 34px var(--shadow-lift), inset 0 1px 0 rgba(255,255,255,.2);
+  }
+  .clip-metal {
+    position: absolute; top: -12px; left: calc(50% - 75px); width: 150px; height: 46px; z-index: 3;
+    background: linear-gradient(#EEF0F2, #A9AFB5 60%, #7E858C);
+    border-radius: 10px 10px 6px 6px;
+    box-shadow: 0 3px 5px rgba(0,0,0,.35), inset 0 1px 0 #fff;
+  }
+  .clip-metal::after { content: ""; position: absolute; top: 8px; left: calc(50% - 16px); width: 32px; height: 14px; border-radius: 8px; background: #6D747B; box-shadow: inset 0 2px 3px rgba(0,0,0,.45); }
+  .clipboard-sheet { background: var(--paper); border-radius: 4px; padding: 34px 36px 32px; box-shadow: 0 1px 2px rgba(0,0,0,.2); }
+  .clipboard-sheet h3 { margin: 0 0 14px; font-stretch: 120%; font-weight: 800; font-size: 1.7rem; line-height: 1.15; letter-spacing: -0.015em; max-width: 22ch; }
+  .clipboard-sheet p { margin: 0 0 14px; color: var(--ink-muted); max-width: 66ch; }
+  .clipboard-sheet p.lead { color: var(--ink); font-weight: 500; }
+  .strip-row { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 20px; }
+
+  /* Printer = 3D viewer */
+  .printer {
+    border-radius: 14px; padding: 16px;
+    background: linear-gradient(180deg, #34383D, #24272B);
+    box-shadow: 0 20px 38px var(--shadow-lift), inset 0 1px 0 rgba(255,255,255,.08);
+    color: #E9E6DF;
+  }
+  .printer-top { display: flex; justify-content: space-between; align-items: center; padding: 0 4px 12px; font-size: 0.78rem; font-weight: 700; color: #9AA1A8; }
+  .printer-top .led { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #5BE37D; box-shadow: 0 0 6px #5BE37D; margin-right: 6px; }
+  .chamber {
+    position: relative; height: 280px; border-radius: 8px; overflow: hidden;
+    background: radial-gradient(ellipse at 50% 25%, #4A4F56, #26292D 75%);
+    box-shadow: inset 0 0 0 2px #15171A, inset 0 10px 24px rgba(0,0,0,.5);
+  }
+  .chamber::after { /* glass reflection */
+    content: ""; position: absolute; inset: 0; pointer-events: none;
+    background: linear-gradient(115deg, rgba(255,255,255,.08) 0 18%, transparent 18% 60%, rgba(255,255,255,.04) 60% 64%, transparent 64%);
+  }
+  #modelCanvas { width: 100%; height: 100%; display: block; cursor: grab; touch-action: none; }
+  #modelCanvas:active { cursor: grabbing; }
+  .viewer-fallback { position: absolute; inset: 0; display: none; align-items: center; justify-content: center; text-align: center; padding: 20px; font-family: 'VT323', monospace; font-size: 1.2rem; color: #FFB25C; }
+  .printer-panel { display: grid; grid-template-columns: 1fr auto; gap: 14px; margin-top: 14px; align-items: stretch; }
+  .lcd {
+    background: #14110D; border-radius: 6px; padding: 10px 14px;
+    box-shadow: inset 0 0 0 2px #0A0907, inset 0 0 18px rgba(255,150,50,.08);
+    font-family: 'VT323', monospace; color: #FFB25C; font-size: 1.12rem; line-height: 1.2;
+    text-shadow: 0 0 4px rgba(255,160,60,.45);
+    min-width: 0;
+  }
+  .lcd .dim { color: #A9733E; }
+  .lcd-title { font-size: 1.32rem; color: #FFC47F; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .lcd-row { display: flex; justify-content: space-between; gap: 10px; }
+  .lcd-row span:last-child { text-align: right; }
+  .keys { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; align-content: start; }
+  .key {
+    font: inherit; font-size: 0.8rem; font-weight: 700; color: #E9E6DF; cursor: pointer;
+    background: linear-gradient(#4B5057, #393D42); border: 1px solid #1A1C1F; border-radius: 6px;
+    padding: 9px 12px; box-shadow: 0 3px 0 #15171A, inset 0 1px 0 rgba(255,255,255,.12);
+  }
+  .key:active { transform: translateY(2px); box-shadow: 0 1px 0 #15171A; }
+  .key.wide { grid-column: span 2; background: linear-gradient(#D06A12, #A95100); border-color: #6E3500; }
+  .printer-hint { margin-top: 10px; font-size: 0.78rem; color: #9AA1A8; text-align: center; }
+
+  /* ============================================================
+     PROJECT CARDS — screw-mounted, straighten + expand on hover
+     ============================================================ */
+  .board-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 44px 34px; padding-top: 6px; }
+  .card {
+    background: var(--paper); border-radius: 8px; cursor: pointer;
+    box-shadow: 0 10px 22px var(--shadow), 0 1px 0 var(--line);
+    display: flex; flex-direction: column; text-align: left;
+    padding-top: 30px; /* room for the screws */
+    will-change: transform;
+  }
+  .card.featured { grid-column: span 2; }
+  .card:hover { box-shadow: 0 16px 32px var(--shadow-lift); }
+  .card-media { position: relative; height: 210px; margin: 0 14px; border-radius: 4px; overflow: hidden; background: var(--paper-2); border: 1px solid var(--line); }
+  .card.featured .card-media { height: 300px; }
+  .card-media img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .card-media.contain img { object-fit: contain; padding: 12px; }
+  /* layer-by-layer "print in" */
+  .card-media .status { position: absolute; top: 10px; left: 10px; }
+  .card-body { padding: 18px 22px 22px; display: flex; flex-direction: column; flex-grow: 1; }
+  .card-meta { font-size: 0.82rem; font-weight: 600; color: var(--ink-faint); margin-bottom: 6px; }
+  .card-title { margin: 0 0 8px; font-stretch: 115%; font-weight: 800; font-size: 1.22rem; line-height: 1.22; letter-spacing: -0.01em; }
+  .card.featured .card-title { font-size: 1.55rem; }
+  .card-desc { margin: 0 0 16px; color: var(--ink-muted); font-size: 0.97rem; flex-grow: 1; }
+  .card-open { font-weight: 700; font-size: 0.9rem; color: var(--accent); }
+
+  /* ============================================================
+     EXPERIENCE
+     ============================================================ */
+  .xp-grid { display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 36px 48px; align-items: start; }
+  .xp-col { display: flex; flex-direction: column; gap: 36px; }
+  .panel { background: var(--paper); border-radius: 8px; padding: 36px 28px 26px; box-shadow: 0 10px 22px var(--shadow), 0 1px 0 var(--line); }
+  .xp-head { display: flex; gap: 16px; align-items: flex-start; margin-bottom: 10px; }
+  .xp-logo { width: 52px; height: 52px; flex-shrink: 0; border-radius: 8px; background: var(--paper-2); border: 1px solid var(--line); display: flex; align-items: center; justify-content: center; overflow: hidden; font-stretch: 120%; font-weight: 800; font-size: 0.78rem; color: var(--accent); }
+  .xp-logo img { width: 100%; height: 100%; object-fit: cover; }
+  .xp-role { font-stretch: 115%; font-weight: 800; font-size: 1.16rem; line-height: 1.25; }
+  .xp-org { color: var(--accent); font-weight: 600; font-size: 0.95rem; }
+  .xp-date { font-size: 0.82rem; color: var(--ink-faint); font-weight: 600; }
+  .panel ul { margin: 0; padding-left: 18px; color: var(--ink-muted); }
+  .panel li { margin-bottom: 6px; }
+  .season { margin: 18px 0 8px; padding-top: 12px; border-top: 1px dashed var(--line); font-stretch: 112%; font-weight: 800; font-size: 0.9rem; color: var(--ink); }
+  .xp-head + .season { border-top: none; padding-top: 0; margin-top: 6px; }
+  .text-btn { background: none; border: none; padding: 0; margin-top: 8px; font: inherit; font-weight: 700; font-size: 0.9rem; color: var(--accent); cursor: pointer; }
+  .text-btn:hover { text-decoration: underline; }
+  .panel h3 { margin: 0 0 14px; font-stretch: 118%; font-weight: 800; font-size: 1.3rem; }
+  .panel h4 { margin: 18px 0 8px; font-size: 0.88rem; font-weight: 700; color: var(--ink-muted); }
+  .panel h4:first-of-type { margin-top: 0; }
+  .edu-line { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; color: var(--ink-muted); font-size: 0.95rem; }
+  .edu-line strong { color: var(--ink); }
+  .award { padding: 10px 0; border-top: 1px dashed var(--line); }
+  .award:first-of-type { border-top: none; padding-top: 0; }
+  .award-t { font-weight: 700; }
+  .award-m { font-size: 0.88rem; color: var(--ink-muted); }
+
+  /* ============================================================
+     OFF THE CLOCK — stack of photo prints
+     ============================================================ */
+  .otc-grid { display: grid; grid-template-columns: 1.45fr 0.55fr; gap: 48px; align-items: center; }
+  .print-stage { position: relative; height: 560px; outline: none; touch-action: pan-y; }
+  .print {
+    position: absolute; left: 50%; top: 46%; margin: 0;
+    background: #FDFDFB; padding: 12px 12px 46px; border-radius: 2px;
+    box-shadow: 0 10px 26px rgba(0,0,0,.28);
+    transform: translate(-50%, -50%) translate(var(--dx, 0px), var(--dy, 0px)) rotate(var(--r, 0deg));
+    transition: transform .55s cubic-bezier(.2,.75,.25,1), opacity .35s ease, box-shadow .3s ease;
+    will-change: transform;
+  }
+  .print img { display: block; max-width: min(640px, 70vw); max-height: 420px; width: auto; height: auto; }
+  .print figcaption {
+    position: absolute; left: 14px; right: 14px; bottom: 9px;
+    font-family: 'Caveat', cursive; font-weight: 600; font-size: 1.4rem; line-height: 1; color: #2A2C30;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .print:not(.top) figcaption { opacity: 0; transition: opacity .2s ease; }
+  .print.top { cursor: zoom-in; }
+  .print.top:hover { box-shadow: 0 16px 34px rgba(0,0,0,.34); }
+  .print.hidden { opacity: 0; pointer-events: none; }
+  .print.leaving { --dx: 120% !important; --dy: -4% !important; --r: 9deg !important; }
+  .print.entering { --dx: -120% !important; --dy: -4% !important; --r: -9deg !important; transition: none; }
+  .print-controls { display: flex; align-items: center; justify-content: center; gap: 16px; margin-top: 8px; }
+  .print-count { font-family: 'Caveat', cursive; font-weight: 700; font-size: 1.45rem; min-width: 52px; text-align: center; background: color-mix(in srgb, var(--paper) 85%, transparent); border-radius: 6px; padding: 0 8px; }
+  .otc-note p { margin: 0 0 12px; color: var(--ink-muted); }
+  .otc-note p.lead { color: var(--ink); font-weight: 600; font-size: 1.05rem; }
+  .otc-hint { font-size: 0.85rem; color: var(--ink-faint); }
+
+  /* ============================================================
+     CONTACT
+     ============================================================ */
+  .contact .sign { margin: 0 auto; text-align: center; max-width: 760px; }
+  .contact .sign-name { font-size: clamp(2.2rem, 5vw, 3.6rem); }
+  .contact .sign-actions { justify-content: center; margin-top: 28px; }
+
+  footer.site { padding: 30px 0 40px; text-align: center; font-size: 0.88rem; color: var(--ink-muted); }
+  footer.site p { display: inline-block; margin: 0; background: color-mix(in srgb, var(--paper) 85%, transparent); padding: 6px 14px; border-radius: 6px; }
+
+  /* ============================================================
+     MODALS — spec sheet on a clipboard
+     ============================================================ */
+  .modal-overlay { position: fixed; inset: 0; z-index: 999; display: none; align-items: center; justify-content: center; padding: 30px 16px 16px; background: rgba(18, 16, 13, 0.72); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
+  .modal-overlay.active { display: flex; }
+  .modal-card {
+    position: relative; width: 100%; max-width: 900px; max-height: calc(100vh - 56px);
+    display: flex; flex-direction: column;
+    border-radius: 14px; padding: 46px 16px 16px;
+    background: linear-gradient(160deg, #A07A4F, #7F5C37);
+    box-shadow: 0 30px 60px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.2);
+    animation: slideUp .26s cubic-bezier(.16,1,.3,1);
+  }
+  @keyframes slideUp { from { transform: translateY(26px); opacity: 0; } to { transform: none; opacity: 1; } }
+  .modal-card > .clip { position: absolute; top: -12px; left: calc(50% - 75px); width: 150px; height: 46px; z-index: 3; background: linear-gradient(#EEF0F2, #A9AFB5 60%, #7E858C); border-radius: 10px 10px 6px 6px; box-shadow: 0 3px 5px rgba(0,0,0,.35), inset 0 1px 0 #fff; }
+  .modal-card > .clip::after { content: ""; position: absolute; top: 8px; left: calc(50% - 16px); width: 32px; height: 14px; border-radius: 8px; background: #6D747B; box-shadow: inset 0 2px 3px rgba(0,0,0,.45); }
+  .modal-close {
+    position: absolute; top: 8px; right: 12px; z-index: 4;
+    width: 34px; height: 34px; border-radius: 50%; cursor: pointer;
+    background: rgba(0,0,0,.25); border: 1px solid rgba(255,255,255,.3); color: #fff; font-size: 1.3rem; line-height: 1;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .modal-close:hover { background: var(--accent-fill); border-color: var(--accent-fill); }
+  .sheet { background: var(--paper); border-radius: 4px; padding: 34px 40px 30px; overflow-y: auto; overscroll-behavior: contain; min-height: 0; }
+  .modal-category { display: inline-block; background: var(--label-bg); color: var(--label-ink); font-stretch: 112%; font-weight: 700; font-size: 0.8rem; padding: 3px 12px 4px; margin-bottom: 14px; clip-path: polygon(4px 0, calc(100% - 4px) 0, 100% 50%, calc(100% - 4px) 100%, 4px 100%, 0 50%); }
+  .modal-title { margin: 0 0 6px; font-stretch: 118%; font-weight: 800; font-size: 1.85rem; line-height: 1.15; letter-spacing: -0.015em; }
+  .modal-org { color: var(--ink-muted); font-weight: 600; margin-bottom: 14px; }
+  .modal-tags { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 22px; }
+  .skill-tag { font-size: 0.82rem; font-weight: 600; padding: 4px 11px; border-radius: 4px; background: var(--paper-2); border: 1px solid var(--line); color: var(--ink); }
+  .modal-lead { font-size: 1.08rem; font-weight: 500; margin: 0 0 18px; color: var(--ink); }
+  .modal-section-title { margin: 30px 0 10px; padding-bottom: 6px; border-bottom: 2px solid var(--ink); font-stretch: 115%; font-weight: 800; font-size: 1.1rem; }
+  .modal-body-text { margin: 0 0 14px; color: var(--ink-muted); }
+  .modal-list { margin: 0 0 16px; padding-left: 20px; color: var(--ink-muted); }
+  .modal-list li { margin-bottom: 7px; }
+  .modal-list strong, .modal-body-text strong { color: var(--ink); }
+  .modal-gallery { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; margin: 18px 0 22px; }
+  .modal-gallery.single { grid-template-columns: 1fr; }
+  .gallery-item { margin: 0; border-radius: 6px; overflow: hidden; background: var(--paper-2); border: 1px solid var(--line); }
+  .gallery-item[data-lightbox] { cursor: zoom-in; }
+  .gallery-item[data-lightbox]:hover { border-color: var(--accent); }
+  .gallery-item img { width: 100%; height: 230px; object-fit: contain; display: block; }
+  .modal-gallery.single .gallery-item img { height: 360px; }
+  .gallery-item video { width: 100%; height: 230px; object-fit: contain; background: #111; display: block; }
+  .gallery-cap { padding: 8px 12px; font-size: 0.85rem; color: var(--ink-muted); border-top: 1px solid var(--line); background: var(--paper); }
+  .rev-label { font-weight: 800; color: var(--accent); margin-right: 6px; font-size: 0.78rem; }
+  /* failure blocks = red "out of service" tag stapled to the sheet */
+  .fail-block { position: relative; margin: 0 0 16px; padding: 18px 20px 18px 22px; border-radius: 6px; background: var(--paper-2); border: 1px solid var(--line); border-left: 5px solid var(--accent); }
+  .fail-block h4 { margin: 0 0 6px; font-stretch: 112%; font-weight: 800; font-size: 1.02rem; }
+  .fail-block p { margin: 0; color: var(--ink-muted); font-size: 0.98rem; }
+  .fail-block .modal-gallery { margin: 14px 0 0; }
+  .fail-block .gallery-item img { height: 190px; }
+
+  /* Lightbox + PDF */
+  .lightbox-overlay { position: fixed; inset: 0; z-index: 1200; display: none; align-items: center; justify-content: center; padding: 24px; background: rgba(10, 9, 8, 0.94); }
+  .lightbox-overlay.active { display: flex; }
+  .lightbox-box { position: relative; max-width: 92vw; max-height: 90vh; display: flex; flex-direction: column; align-items: center; }
+  .lightbox-img { max-width: 100%; max-height: 82vh; object-fit: contain; border-radius: 6px; background: #F3F0E8; }
+  .lightbox-caption { margin-top: 12px; color: #ECEAE5; text-align: center; max-width: 640px; }
+  .lightbox-close { position: absolute; top: -44px; right: 0; width: 36px; height: 36px; border-radius: 50%; border: 1px solid rgba(255,255,255,.35); background: rgba(255,255,255,.12); color: #fff; font-size: 1.3rem; cursor: pointer; }
+  .lightbox-close:hover { background: var(--accent-fill); }
+  .pdf-card { max-width: 1060px; height: calc(100vh - 56px); }
+  .pdf-card .sheet { padding: 0; flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+  .pdf-bar { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 12px 16px; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+  .pdf-bar strong { font-stretch: 112%; }
+  .pdf-card iframe { flex: 1; width: 100%; border: 0; background: #fff; }
+
+  /* ============================================================
+     RESPONSIVE
+     ============================================================ */
+  @media (max-width: 1100px) {
+    .board-grid { grid-template-columns: repeat(2, 1fr); }
+    .about-grid, .xp-grid, .otc-grid { grid-template-columns: 1fr; }
+    .landing-row { flex-direction: column; gap: 48px; }
+    .sign-note { display: none; }
+  }
+  @media (max-width: 960px) { .nav-links a { display: none; } }
+  @media (max-width: 860px) {
+    body { padding-left: 0; }
+    .rail { display: none; }
+    .wrap { padding: 0 20px; }
+  }
+  @media (max-width: 620px) {
+    .board-grid { grid-template-columns: 1fr; }
+    .card.featured { grid-column: span 1; }
+    .card.featured .card-media { height: 220px; }
+    .sign { padding: 46px 26px 36px; }
+    .photo-board { width: 100%; max-width: 340px; }
+    .clipped-photo .frame { height: 260px; }
+    .photo-notes { font-size: 1.35rem; }
+    .clipboard-sheet { padding: 26px 22px; }
+    .sheet { padding: 26px 20px; }
+    .printer-panel { grid-template-columns: 1fr; }
+    .keys { grid-template-columns: 1fr 1fr 1fr; }
+    .key.wide { grid-column: auto; }
+    .rocker span.lbl { display: none; }
+    .brand img { display: none; }
+    .modal-gallery.single .gallery-item img { height: 240px; }
+    .print-stage { height: 420px; }
+    .print img { max-width: 78vw; max-height: 300px; }
+    .print figcaption { font-size: 1.15rem; }
+    .nav-links { gap: 10px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    *, *::before, *::after { animation: none !important; transition: none !important; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Left rail: digital caliper; the slider follows scroll and reads out distance -->
+<div class="rail" aria-hidden="true">
+  <div class="beam"><canvas class="beam-scale" id="beamScale"></canvas></div>
+  <svg class="jaw-fixed" viewBox="0 0 62 30">
+    <defs><linearGradient id="jawSteel" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#A6ADB4"/><stop offset="1" stop-color="#E3E6E9"/></linearGradient></defs>
+    <polygon points="0.8,-1 32,-1 61.2,17.5 61.2,29.2 0.8,29.2" fill="url(#jawSteel)" stroke="#23272B" stroke-width="1.6" stroke-linejoin="round"/>
+  </svg>
+  <div class="slider" id="caliperSlider">
+    <svg class="slider-jaw" viewBox="0 0 40 22">
+      <polygon points="0.8,0.8 39.2,0.8 39.2,9.5 20.8,21.2 0.8,21.2" fill="url(#jawSteel)" stroke="#23272B" stroke-width="1.6" stroke-linejoin="round"/>
+    </svg>
+    <div class="slider-body"></div>
+    <div class="slider-lcd" id="caliperLcd">0.0</div>
+    <div class="slider-unit">mm</div>
+    <div class="slider-wheel" id="caliperWheel"></div>
+  </div>
+</div>
+
+<header class="site">
+  <div class="wrap">
+    <div class="nav">
+      <a class="brand" href="#top">
+        <img src="images/Logo_2.png" alt="" onerror="this.remove()">
+        <span>James Seidel</span>
+      </a>
+      <nav class="nav-links" aria-label="Main">
+        <a href="#about">About</a>
+        <a href="#projects">Projects</a>
+        <a href="#experience">Experience</a>
+        <a href="#outside">Outdoors</a>
+        <a href="#contact">Contact</a>
+        <button class="btn" type="button" data-pdf="Seidel.James.Resume%2010.6.26.pdf">Resume</button>
+        <button class="rocker" id="themeToggle" type="button" role="switch" aria-checked="true" aria-label="Dark mode">
+          <span class="rocker-body" aria-hidden="true"></span><span class="lbl">Dark mode</span>
+        </button>
+      </nav>
+    </div>
+  </div>
+</header>
+
+<!-- ===================== OPENING ===================== -->
+<div class="landing" id="top">
+
+  <div class="wrap" style="width:100%">
+    <div class="landing-row">
+      <div class="sign">
+        <span class="standoff tl"></span><span class="standoff tr"></span><span class="standoff bl"></span><span class="standoff br"></span>
+        <p class="sign-kicker">Mechanical Engineering, UT Austin</p>
+        <h1 class="sign-name">James<br>Seidel</h1>
+        <dl class="sign-contact">
+          <dt>Email</dt><dd><a href="mailto:jameseseidel@icloud.com">jameseseidel@icloud.com</a></dd>
+          <dt>Phone</dt><dd><a href="tel:+15127572980">(512) 757-2980</a></dd>
+          <dt>LinkedIn</dt><dd><a href="https://linkedin.com/in/jamesseidel" target="_blank" rel="noopener">linkedin.com/in/jamesseidel</a></dd>
+        </dl>
+        <div class="sign-actions">
+          <a class="btn solid" href="#projects">See the projects</a>
+          <a class="btn solid" href="#experience">See my experience</a>
+          <button class="btn" type="button" data-pdf="Seidel.James.Resume%2010.6.26.pdf">Resume (PDF)</button>
+        </div>
+      </div>
+
+      <div class="photo-board">
+        <span class="clip-metal" aria-hidden="true"></span>
+        <div class="photo-sheet">
+          <figure class="clipped-photo">
+            <div class="frame"><img src="images/James.jpg" alt="James Seidel" onerror="this.outerHTML='<span class=&quot;initials&quot;>JS</span>'"></div>
+          </figure>
+          <div class="photo-notes">
+            <div class="note-top">
+              <span class="hand-bullet">James Seidel</span>
+              <svg class="note-arrow" viewBox="0 0 62 54" aria-hidden="true">
+                <path d="M4 48 C 16 52, 30 46, 28 36 C 26 28, 14 32, 19 39 C 25 47, 44 40, 50 22 C 52 15, 52 10, 51 5"/>
+                <path d="M44 11 L51 4 L57 12"/>
+              </svg>
+              <span class="hand-bullet">Mech E</span>
+            </div>
+            <ul class="hand-list">
+              <li>Designer</li>
+              <li>3D-printing enthusiast</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<main>
+
+  <!-- ===================== ABOUT ===================== -->
+  <section id="about">
+    <div class="wrap">
+      <div class="section-head">
+        <h2>About</h2>
+      </div>
+      <div class="about-grid">
+        <div class="clipboard">
+          <span class="clip-metal" aria-hidden="true"></span>
+          <div class="clipboard-sheet">
+            <h3>Identifying real problems and building physical solutions</h3>
+            <p class="lead">
+              I am a mechanical engineering student at the University of Texas at Austin (B.S., expected May 2029,
+              GPA 4.00/4.00). This past summer I worked as a River Engineering Intern at Southwest River Engineering
+              in Pagosa Springs, CO, where I used HEC-RAS hydraulic modeling and Civil 3D surface design to support
+              floodplain permitting and post-flood recovery projects.
+            </p>
+            <p>
+              I'm also a Systems Subteam member for Texas Flight, where I have designed and fabricated
+              banner-deployment and cargo holding mechanisms for competition aircraft, and I previously served as my
+              team's Mechanical Lead in UT's IEEE RAS Robotathon competition, where the projectile-launching mechanism
+              I built was awarded Best Design. I am a University Honors student (Fall 2025, Spring 2026) as well as a
+              National Merit Scholar Finalist.
+            </p>
+            <div class="strip-row">
+              <span class="ptouch">Southwest River Engineering</span>
+              <span class="ptouch">Texas Flight</span>
+              <span class="ptouch">IEEE RAS Robotathon</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="printer">
+          <div class="printer-top"><span><span class="led" aria-hidden="true"></span>Build plate</span><span>Drag to rotate, scroll to zoom</span></div>
+          <div class="chamber">
+            <canvas id="modelCanvas" aria-label="Interactive 3D model viewer"></canvas>
+            <div class="viewer-fallback" id="viewerFallback">VIEWER OFFLINE<br>Open a project below for CAD renders.</div>
+          </div>
+          <div class="printer-panel">
+            <div class="lcd" aria-live="polite">
+              <div class="lcd-row dim"><span>&gt; NOW PRINTING <span id="lcdIndex">1/3</span></span><span id="stlStatus">STAND-IN</span></div>
+              <div class="lcd-title" id="modelTitle">VTOL DRONE INTERCEPTOR</div>
+              <div class="lcd-row"><span class="dim" id="specLabel1">AIRFRAME</span><span id="specVal1">~3" x 12" bullet fuselage</span></div>
+              <div class="lcd-row"><span class="dim" id="specLabel2">PROPULSION</span><span id="specVal2">5" props / 1960KV / 6S</span></div>
+              <div class="lcd-row dim"><span id="modelCoords">ROT 0/0  ZOOM 100%</span></div>
+            </div>
+            <div class="keys">
+              <button class="key" id="prevModelBtn" type="button" aria-label="Previous model">&#9664; Prev</button>
+              <button class="key" id="nextModelBtn" type="button" aria-label="Next model">Next &#9654;</button>
+              <button class="key wide" id="benchOpenBtn" type="button">Open project</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== PROJECTS ===================== -->
+  <section id="projects">
+    <div class="wrap">
+      <div class="section-head">
+        <h2>Projects</h2>
+        <p>Click any card for the full spec sheet: objective, constraints, key decisions, iteration, results, and what failed along the way.</p>
+      </div>
+
+      <div class="board-grid">
+        <article class="card mounted" tabindex="0" role="button" data-modal="project-quadcopter" aria-label="Open project: 3D-Printed VTOL Drone Interceptor">
+          <span class="standoff tl" aria-hidden="true"></span><span class="standoff tr" aria-hidden="true"></span>
+          <div class="card-media contain">
+            <img src="images/Final_Drone_Main_View.png" alt="Bullet-fuselage interceptor quadcopter, main CAD view" >
+            <span class="status ptouch orange">In progress</span>
+          </div>
+          <div class="card-body">
+            <div class="card-meta">Independent build, 06/2026 – Present</div>
+            <h3 class="card-title">3D-Printed VTOL Drone Interceptor</h3>
+            <p class="card-desc">A compact, 3D-printed VTOL aircraft that flies as a multirotor for takeoff and landing and transitions to efficient winged forward flight — inspired by Ukrainian interceptor drone designs.</p>
+            <span class="card-open">Open spec sheet</span>
+          </div>
+        </article>
+
+        <article class="card mounted" tabindex="0" role="button" data-modal="project-remora" aria-label="Open project: Remora DBF Towed Sensor">
+          <span class="standoff tl" aria-hidden="true"></span><span class="standoff tr" aria-hidden="true"></span>
+          <div class="card-media contain">
+            <img class="remora-shot" src="images/Remora.png" alt="Remora towed sensor, CAD render" onerror="window.__useRemoraShot && window.__useRemoraShot(this)">
+            <span class="status ptouch orange">In progress</span>
+          </div>
+          <div class="card-body">
+            <div class="card-meta">AIAA Design/Build/Fly, 2026–27</div>
+            <h3 class="card-title">Remora — DBF Towed Sensor</h3>
+            <p class="card-desc">An aerodynamic sensor carried inside an RC plane, deployed mid-flight to flash an external light, then retracted back into the plane.</p>
+            <span class="card-open">Open spec sheet</span>
+          </div>
+        </article>
+
+        <article class="card mounted" tabindex="0" role="button" data-modal="project-beetleweight" aria-label="Open project: Beetleweight Combat Robot">
+          <span class="standoff tl" aria-hidden="true"></span><span class="standoff tr" aria-hidden="true"></span>
+          <div class="card-media">
+            <img src="images/Battlebot.jpeg" alt="Beetleweight combat robot, exterior" >
+          </div>
+          <div class="card-body">
+            <div class="card-meta">SPARC beetleweight, 01/2026 – 05/2026</div>
+            <h3 class="card-title">Beetleweight Combat Robot</h3>
+            <p class="card-desc">A ≤3 lb combat robot on a $50 budget: invertible chassis, belt-driven spinner, and a won match after an axle failure taught a hard lesson about print orientation.</p>
+            <span class="card-open">Open spec sheet</span>
+          </div>
+        </article>
+
+        <article class="card mounted" tabindex="0" role="button" data-modal="project-banner-release" aria-label="Open project: RC Plane Banner Release Mechanism">
+          <span class="standoff tl" aria-hidden="true"></span><span class="standoff tr" aria-hidden="true"></span>
+          <div class="card-media contain">
+            <img src="images/Final_Release_Mechanism.png" alt="RC plane banner release mechanism, final CAD design" >
+          </div>
+          <div class="card-body">
+            <div class="card-meta">Texas Flight, 09/2025 – 05/2026</div>
+            <h3 class="card-title">RC Plane Banner Release Mechanism</h3>
+            <p class="card-desc">A pin-slot mechanism that releases a banner mid-flight, actuated remotely through the plane's controller. Released up to 7 kg in testing.</p>
+            <span class="card-open">Open spec sheet</span>
+          </div>
+        </article>
+
+        <article class="card mounted" tabindex="0" role="button" data-modal="project-hamper" aria-label="Open project: Odor-Reducing Laundry Hamper">
+          <span class="standoff tl" aria-hidden="true"></span><span class="standoff tr" aria-hidden="true"></span>
+          <div class="card-media">
+            <img src="images/Hamper.jpeg" alt="Odor-reducing laundry hamper prototype" >
+          </div>
+          <div class="card-body">
+            <div class="card-meta">Product design, 10/2025 – Present</div>
+            <h3 class="card-title">Odor-Reducing Laundry Hamper</h3>
+            <p class="card-desc">A hamper that actively reduces odor buildup in stored clothing through airflow management, rather than passive storage.</p>
+            <span class="card-open">Open spec sheet</span>
+          </div>
+        </article>
+
+        <article class="card mounted" tabindex="0" role="button" data-modal="project-borrowbox" aria-label="Open project: The Borrow Box">
+          <span class="standoff tl" aria-hidden="true"></span><span class="standoff tr" aria-hidden="true"></span>
+          <div class="card-media">
+            <img src="images/Final_Prototype.jpg" alt="The Borrow Box, final prototype" >
+          </div>
+          <div class="card-body">
+            <div class="card-meta">Rapid-prototyping competition, 10/2025</div>
+            <h3 class="card-title">The Borrow Box — Automatic Pencil Dispenser</h3>
+            <p class="card-desc">Built in a two-day competition to help K-12 teachers manage classroom supplies. Awarded Best Technical Design among 10+ teams.</p>
+            <span class="card-open">Open spec sheet</span>
+          </div>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== EXPERIENCE ===================== -->
+  <section id="experience">
+    <div class="wrap">
+      <div class="section-head">
+        <h2>Experience &amp; Skills</h2>
+      </div>
+      <div class="xp-grid">
+        <div class="xp-col">
+          <div class="panel mounted">
+            <span class="standoff tl" aria-hidden="true"></span><span class="standoff tr" aria-hidden="true"></span>
+            <div class="xp-head">
+              <div class="xp-logo"><img src="images/logos/swre.png" alt="" onerror="this.replaceWith('SWRE')"></div>
+              <div>
+                <div class="xp-role">Engineering Intern</div>
+                <div class="xp-org">Southwest River Engineering</div>
+                <div class="xp-date">06/2026 – 07/2026</div>
+              </div>
+            </div>
+            <ul>
+              <li>Executed hydraulic analysis using HEC-RAS to simulate flood events for 6 construction projects, verify safety of construction plans, and secure regulatory floodplain permits.</li>
+              <li>Developed 3D surface models and plan sets using Civil 3D, transforming raw survey data into conceptual designs for 5+ habitat restoration projects and the redesign of 3 miles of drainage channel.</li>
+              <li>Conducted daily site inspections and maintained technical logs to document construction progress and ensure contractor compliance with engineering specifications.</li>
+            </ul>
+          </div>
+          <div class="panel mounted">
+            <span class="standoff tl" aria-hidden="true"></span><span class="standoff tr" aria-hidden="true"></span>
+            <div class="xp-head">
+              <div class="xp-logo"><img src="images/logos/texas-flight.png" alt="" onerror="this.replaceWith('TF')"></div>
+              <div>
+                <div class="xp-role">Systems Subteam Member</div>
+                <div class="xp-org">Texas Flight</div>
+                <div class="xp-date">09/2025 – Present</div>
+              </div>
+            </div>
+            <div class="season">2026–27 season</div>
+            <ul>
+              <li>Develop a 3D-printable, missile-shaped towed sensor with a four-fin stabilization system using SolidWorks, designed for structural loads up to 15 lbs and 60 mph flight.</li>
+              <li>Design an adjustable CG system for 5+ payload configurations (5–15 lb), achieving CG placement within 0.03 in. of target (0.11% of sensor length) to maintain consistent flight stability.</li>
+              <li>Collaborate with a 20+ member multidisciplinary team in weekly meetings to develop, iteratively test, and optimize critical RC aircraft components to meet competition objectives.</li>
+            </ul>
+            <button class="text-btn" type="button" data-modal="project-remora">See Remora</button>
+            <div class="season">2025–26 season</div>
+            <ul>
+              <li>Designed towed-banner release and cargo storage mechanisms for competition aircraft using SolidWorks.</li>
+              <li>Optimized aircraft components to meet competition objectives, including secure cargo storage, weight limits, and in-flight towed banner release.</li>
+            </ul>
+            <button class="text-btn" type="button" data-modal="project-banner-release">See the banner release mechanism</button>
+          </div>
+          <div class="panel mounted">
+            <span class="standoff tl" aria-hidden="true"></span><span class="standoff tr" aria-hidden="true"></span>
+            <div class="xp-head">
+              <div class="xp-logo"><img src="images/logos/ieee-ras.png" alt="" onerror="this.replaceWith('RAS')"></div>
+              <div>
+                <div class="xp-role">Mechanical Lead</div>
+                <div class="xp-org">Robotathon (UT IEEE RAS)</div>
+                <div class="xp-date">09/2025 – 11/2025</div>
+              </div>
+            </div>
+            <ul>
+              <li>Led the mechanical design and fabrication of a projectile launching mechanism for a semi-autonomous robot using Onshape and 3D printing (awarded Best Design of the competition).</li>
+              <li>Coordinated with a 10-person multidisciplinary team to integrate the launcher with autonomous maze navigation and color-sensing subsystems, communicating design needs and constraints across the team.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="xp-col">
+          <div class="panel mounted">
+            <span class="standoff tl" aria-hidden="true"></span><span class="standoff tr" aria-hidden="true"></span>
+            <h3>Education</h3>
+            <div class="edu-line"><strong>University of Texas at Austin, Austin, TX</strong><span>May 2029</span></div>
+            <div class="edu-line"><span>Bachelor of Science, Mechanical Engineering</span><span>GPA 4.00 / 4.00</span></div>
+            <h4 style="margin-top:16px">Relevant coursework</h4>
+            <div class="edu-line"><span>Thermodynamics, Statics, Diff. Eqns. w/ Linear Algebra, Intro to Engr. Design and Graphics</span></div>
+          </div>
+
+          <div class="panel mounted">
+            <span class="standoff tl" aria-hidden="true"></span><span class="standoff tr" aria-hidden="true"></span>
+            <h3>Skills</h3>
+            <h4>CAD</h4>
+            <div class="strip-row" style="margin-top:0"><span class="ptouch">SolidWorks</span><span class="ptouch">Onshape</span><span class="ptouch">AutoCAD</span><span class="ptouch">AutoCAD Civil 3D</span></div>
+            <h4>Manufacturing</h4>
+            <div class="strip-row" style="margin-top:0"><span class="ptouch">3D Printing</span><span class="ptouch">Rapid Prototyping</span><span class="ptouch">Laser-cutting</span><span class="ptouch">Soldering</span></div>
+            <h4>Software</h4>
+            <div class="strip-row" style="margin-top:0"><span class="ptouch">Python</span><span class="ptouch">Microsoft Office Suite (Excel, Word, PowerPoint)</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== OUTSIDE OF ENGINEERING ===================== -->
+  <section id="outside">
+    <div class="wrap">
+      <div class="section-head">
+        <h2>Outside of Engineering</h2>
+      </div>
+      <div class="otc-grid">
+        <div>
+          <div class="print-stage" id="printStage" tabindex="0" aria-label="Photo stack. Use the arrow keys to flip through.">
+          <figure class="print" data-full="images/photos/british-columbia.jpg">
+            <img src="images/photos/british-columbia.jpg" alt="Mountain peaks at sunrise above two alpine lakes">
+            <figcaption>British Columbia, Canada</figcaption>
+          </figure>
+          <figure class="print" data-full="images/photos/white-sands.jpg">
+            <img src="images/photos/white-sands.jpg" alt="Sunset over rippled white gypsum dunes">
+            <figcaption>White Sands, NM</figcaption>
+          </figure>
+          <figure class="print" data-full="images/photos/narrows.jpg">
+            <img src="images/photos/narrows.jpg" alt="River rushing through a red sandstone slot canyon">
+            <figcaption>The Narrows, Zion</figcaption>
+          </figure>
+          <figure class="print" data-full="images/photos/milky-way.jpg">
+            <img src="images/photos/milky-way.jpg" alt="Milky Way over a mountain ridge with a lit wildflower in the foreground">
+            <figcaption>San Juan Mountains</figcaption>
+          </figure>
+          <figure class="print" data-full="images/photos/grand-canyon.jpg">
+            <img src="images/photos/grand-canyon.jpg" alt="Grand Canyon at dusk with layered rock in the foreground">
+            <figcaption>Grand Canyon, AZ</figcaption>
+          </figure>
+          </div>
+          <div class="print-controls">
+            <button class="btn" type="button" id="printPrev" aria-label="Previous photo">&#9664; Prev</button>
+            <span class="print-count" id="printCount">1 / 5</span>
+            <button class="btn" type="button" id="printNext" aria-label="Next photo">Next &#9654;</button>
+          </div>
+        </div>
+        <div class="panel mounted otc-note">
+          <span class="standoff tl" aria-hidden="true"></span><span class="standoff tr" aria-hidden="true"></span>
+          <p class="lead">When I'm not building something, I'm usually outdoors.</p>
+          <p>I love to run, hike, fish, and shoot landscape photography. These are a few of my favorite photos I've taken.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== CONTACT ===================== -->
+  <section id="contact" class="contact">
+    <div class="wrap">
+      <div class="sign">
+        <span class="standoff tl"></span><span class="standoff tr"></span><span class="standoff bl"></span><span class="standoff br"></span>
+        <p class="sign-kicker">Contact</p>
+        <h2 class="sign-name">Get in touch</h2>
+        <div class="sign-actions">
+          <a href="mailto:jameseseidel@icloud.com" class="btn solid">jameseseidel@icloud.com</a>
+          <a href="https://linkedin.com/in/jamesseidel" target="_blank" rel="noopener" class="btn">LinkedIn</a>
+          <a href="tel:+15127572980" class="btn">(512) 757-2980</a>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="site">
+  <p>James Seidel | UT Austin | Mechanical Engineer</p>
+</footer>
+
+<!-- ======================================================= -->
+<!-- PROJECT SPEC SHEETS (IDs match old anchors: #project-…) -->
+<!-- ======================================================= -->
+<!-- 1. VTOL Drone Interceptor -->
+<div class="modal-overlay" id="project-quadcopter" role="dialog" aria-modal="true" aria-labelledby="t-quad">
+  <div class="modal-card">
+    <div class="clip" aria-hidden="true"></div>
+    <button class="modal-close" type="button" aria-label="Close">&times;</button>
+    <div class="sheet">
+    <div class="modal-category">Aerospace / Iterative Design</div>
+    <h3 class="modal-title" id="t-quad">3D-Printed VTOL Drone Interceptor</h3>
+    <div class="modal-org">Independent Project : 06/2026 – Present</div>
+    <div class="modal-tags"><span class="skill-tag">SolidWorks</span><span class="skill-tag">Iterative Design</span><span class="skill-tag">Aerodynamics</span></div>
+    <p class="modal-lead">
+      Design a compact, 3D-printed VTOL aircraft that flies as a multirotor for takeoff/landing and transitions
+      to efficient winged forward flight, using off-the-shelf FPV components in a custom modular chassis —
+      inspired by Ukrainian interceptor drone designs.
+    </p>
+
+    <div class="modal-gallery single">
+      <figure class="gallery-item" data-lightbox="images/Final_Drone_Main_View.png" data-caption="Bullet-fuselage interceptor quadcopter, main CAD view">
+        <img src="images/Final_Drone_Main_View.png" alt="Bullet-fuselage interceptor quadcopter, main CAD view" >
+        <figcaption class="gallery-cap">Main CAD view: bullet fuselage, NACA 2412 wing, and flat-arm layout.</figcaption>
+      </figure>
+    </div>
+
+    <div class="modal-section-title">Constraints</div>
+    <ul class="modal-list">
+      <li><strong>Fuselage:</strong> ~3" diameter cylindrical shell, ~12" overall length</li>
+      <li><strong>Manufacturing:</strong> every part has to print on UT Makerspace's Bambu printers (~256×256mm bed) within their 5-hour print-time limit — this drove the modularity of the design</li>
+      <li><strong>Size:</strong> 5" prop class drone, 1960KV motors, 6S LiPo battery</li>
+    </ul>
+
+    <div class="modal-section-title">Key Decisions</div>
+    <p class="modal-body-text">
+      Added NACA 2412 wings so the aircraft generates real aerodynamic lift instead of relying on thrust alone.
+      Simplified the arms to flat, symmetric airfoils once it was clear they weren't contributing meaningful lift
+      at their angle to the airflow and not worth the added drag. Chose a tractor motor layout over pusher for
+      cleaner airflow exiting the props.
+    </p>
+
+    <div class="modal-section-title">Iteration</div>
+    <p class="modal-body-text">
+      Iterations of the design consisted of improving aerodynamics and assembly of modular components, while
+      reducing weight. Arm geometry and tail layout each went through multiple dead ends before converging — see
+      Failures &amp; Solutions below.
+    </p>
+
+    <div class="modal-section-title">Status &amp; Result</div>
+    <p class="modal-body-text">
+      CAD is finalized around the bullet fuselage, NACA 2412 wing, and flat-arm layout. FEA of the motor arms
+      confirms that they are strong enough to support the high-thrust motors without breaking. Propulsion and
+      avionics (stack, motors, props, battery, charger) are selected. Next milestone: first print and build.
+    </p>
+
+    <div class="modal-section-title">Retrospective</div>
+    <p class="modal-body-text">
+      The print-bed and time constraints at the makerspace ended up shaping the airframe almost as much as the
+      aerodynamics did, which made designing a smooth bullet fuselage into fabricatable parts its own design
+      problem.
+    </p>
+
+    <div class="modal-section-title">Failures &amp; Solutions</div>
+    <div class="fail-block">
+      <h4>Arm geometry</h4>
+      <p>I initially designed the arms to be airfoiled for aerodynamic efficiency but then realized I could not
+      route the motor wires entirely through the arm due to the low motor placement on the arm in my current
+      tractor motor configuration. My first solution was to use only the leading edge of the airfoil, extending
+      the maximum thickness of the arm down to the trailing edge where I could fit the motor wires through the arm
+      completely. I wanted to improve the strength of the arms as well as how much lift they could generate, so I
+      swept the leading edge to create a trapezoidal shape. However, I realized that the arms weren't worth using
+      as lifting surfaces because I designed them to be at a 45 degree angle to the airflow, and they were not
+      optimized for lift due to their cross-sectional shape. These flaws led me back to my initial airfoiled
+      design, with a simpler solution: I made a flat airfoiled design to maximize aerodynamic efficiency and cut a
+      small gap between the motor housing and arm on the trailing edge to route wiring without reintroducing the
+      original problem.</p>
+      <div class="modal-gallery">
+        <figure class="gallery-item" data-lightbox="images/Initial_Motor_Arm.png" data-caption="Initial motor arm design, airfoiled">
+          <img src="images/Initial_Motor_Arm.png" alt="Initial motor arm design, airfoiled" >
+          <figcaption class="gallery-cap"><span class="rev-label">REV A</span>Initial</figcaption>
+        </figure>
+        <figure class="gallery-item" data-lightbox="images/Final_Motor_Arm.png" data-caption="Final motor arm design, flat with wiring gap">
+          <img src="images/Final_Motor_Arm.png" alt="Final motor arm design, flat with wiring gap" >
+          <figcaption class="gallery-cap"><span class="rev-label">FINAL</span>Final</figcaption>
+        </figure>
+      </div>
+    </div>
+
+    <div class="fail-block">
+      <h4>Tail fin / antenna conflict</h4>
+      <p>Because this was designed as a VTOL drone, my designs revolved around vertical landings on the tail of
+      the drone. However, as I researched more about the internal components I would need to fly the drone, I
+      learned how electronic interference from the battery and motors impacts the drone's receiver. I realized the
+      tail was the optimal place for the receiver antenna, even though mounting the antenna on the tail created a
+      ground-clearance problem on vertical landing. Rather than placing the antenna somewhere less aerodynamically
+      stable and more exposed to electrical interference, I solved this by sweeping the tail fins back, and adding
+      small landing legs to the end of the fins for extra ground clearance.</p>
+      <div class="modal-gallery">
+        <figure class="gallery-item" data-lightbox="images/Initial_Drone_Tail.png" data-caption="Initial drone tail assembly">
+          <img src="images/Initial_Drone_Tail.png" alt="Initial drone tail assembly" >
+          <figcaption class="gallery-cap"><span class="rev-label">REV A</span>Initial</figcaption>
+        </figure>
+        <figure class="gallery-item" data-lightbox="images/Final_Drone_Tail.png" data-caption="Final drone tail assembly, swept fins">
+          <img src="images/Final_Drone_Tail.png" alt="Final drone tail assembly, swept fins" >
+          <figcaption class="gallery-cap"><span class="rev-label">FINAL</span>Final</figcaption>
+        </figure>
+      </div>
+    </div>
+
+    <div class="fail-block">
+      <h4>Early assembly conflicts</h4>
+      <p>My initial versions of each section were designed around wiring simplicity without checking real
+      assembly clearance, as some components physically couldn't connect once modeled together. One of my goals
+      of this project was to practice considering the bigger picture of how everything would assemble in the real
+      world and to consciously design connecting features between parts that would allow me to easily assemble and
+      disassemble the drone. After each iteration of my design, I made sure to consider how I designed each part to
+      connect, and I caught many mistakes I was able to fix, such as the motors having no way to screw into the
+      fuselage, or having no way to fit the battery into my internal component housing.</p>
+    </div>
+    </div>
+  </div>
+</div>
+
+<!-- 1b. Remora DBF Towed Sensor (WIP) -->
+<div class="modal-overlay" id="project-remora" role="dialog" aria-modal="true" aria-labelledby="t-remora">
+  <div class="modal-card">
+    <div class="clip" aria-hidden="true"></div>
+    <button class="modal-close" type="button" aria-label="Close">&times;</button>
+    <div class="sheet">
+    <div class="modal-category">Aerospace / Payload Design</div>
+    <h3 class="modal-title" id="t-remora">Remora — DBF Towed Sensor</h3>
+    <div class="modal-org">AIAA Design/Build/Fly 2026–27 : In progress</div>
+    <div class="modal-tags"><span class="skill-tag">SolidWorks</span><span class="skill-tag">3D Printing</span><span class="skill-tag">Aerodynamics</span></div>
+    <p class="modal-lead">
+      WIP: I’m currently designing an aerodynamic sensor to be held internally in an RC plane, then deployed
+      mid-flight to flash an external light on the sensor, and finally retracted back into the plane mid-flight.
+    </p>
+
+    <div class="modal-gallery single">
+      <figure class="gallery-item" data-lightbox="images/Remora.png" data-caption="Remora towed sensor, CAD render">
+        <img class="remora-shot" src="images/Remora.png" alt="Remora towed sensor, CAD render" onerror="window.__useRemoraShot && window.__useRemoraShot(this)">
+        <figcaption class="gallery-cap">Current CAD: 3.1" diameter, 18.6" long, 3D-printed body with cruciform tail fins.</figcaption>
+      </figure>
+    </div>
+
+    <div class="modal-section-title">Constraints</div>
+    <ul class="modal-list">
+      <li>Must hold a range of weights for testing while maintaining a constant CG</li>
+      <li>Must have a small enough profile to fit on the underside of the testing plane</li>
+      <li>Must be strong enough to be hung by an eye bolt screwed radially through the missile at the CG</li>
+      <li>Low drag design</li>
+      <li>Target 0.60-caliber static margin to maintain aerodynamic stability during flight.</li>
+      <li>Manufacturing limited to 3D printing</li>
+    </ul>
+
+    <div class="modal-section-title">Iterations</div>
+    <p class="modal-body-text"><strong>Prototype 1.</strong>
+      The first prototype was designed to a range of weight, from around 7-15 lbs, and was designed with custom lead
+      shot internal weight containers for each test scenario to perfectly balance CG at the target 0.60-caliber static
+      margin. At that point on the sensor, an eye bolt was drilled through the fuselage so that when the sensor is pulled
+      underneath the plane during flight, the tension in the connecting rope would not cause any rotation. However, the
+      density of the lead shot internal weights varied significantly between tests and containers, causing CG to vary
+      from its calculated position.
+    </p>
+    <p class="modal-body-text"><strong>Prototype 2.</strong>
+      The second prototype was designed around this issue, putting an exact weight in the nose cone of the sensor to get
+      the overall CG to the target static margin, before two containers of weights are filled equally and placed an equal
+      distance from the CG to balance it more precisely.
+    </p>
+
+    <div class="modal-section-title">Status &amp; Result</div>
+    <p class="modal-body-text">
+      Next up is testing the second prototype in a flight test, where it will be attached to our test plane and deployed
+      mid-flight, holding a lower range of weights (4-7.5 lbs) to determine what final sensor weight will be used at the
+      competition in April.
+    </p>
+    </div>
+  </div>
+</div>
+
+<!-- 2. Beetleweight Combat Robot -->
+<div class="modal-overlay" id="project-beetleweight" role="dialog" aria-modal="true" aria-labelledby="t-beetle">
+  <div class="modal-card">
+    <div class="clip" aria-hidden="true"></div>
+    <button class="modal-close" type="button" aria-label="Close">&times;</button>
+    <div class="sheet">
+    <div class="modal-category">Robotics / Combat Systems</div>
+    <h3 class="modal-title" id="t-beetle">Beetleweight Combat Robot</h3>
+    <div class="modal-org">SPARC Beetleweight Class : 01/2026 – 05/2026</div>
+    <div class="modal-tags"><span class="skill-tag">SolidWorks</span><span class="skill-tag">3D Printing</span><span class="skill-tag">FEA</span></div>
+    <p class="modal-lead">
+      Design and fabricate a beetleweight (≤3 lb) combat robot under SPARC competition rules, prioritizing
+      simplicity, mobility, and offensive capability within a strict budget.
+    </p>
+
+    <div class="modal-gallery">
+      <figure class="gallery-item" data-lightbox="images/Battlebot.jpeg" data-caption="Beetleweight combat robot, exterior">
+        <img src="images/Battlebot.jpeg" alt="Beetleweight combat robot, exterior" >
+        <figcaption class="gallery-cap">Exterior</figcaption>
+      </figure>
+      <figure class="gallery-item" data-lightbox="images/Battlebot_Internals.jpeg" data-caption="Beetleweight combat robot, internals">
+        <img src="images/Battlebot_Internals.jpeg" alt="Beetleweight combat robot, internals" >
+        <figcaption class="gallery-cap">Internals</figcaption>
+      </figure>
+    </div>
+
+    <div class="modal-section-title">Constraints</div>
+    <ul class="modal-list">
+      <li><strong>Weight:</strong> 3 lb max (SPARC beetleweight class)</li>
+      <li><strong>Budget:</strong> $50 cap on new components — forced reuse of stock parts wherever possible</li>
+      <li><strong>Weapons:</strong> restricted to kinetic systems only</li>
+      <li><strong>Starting platform:</strong> Rhybor AWD RC car, with motors, battery, and receiver identified as reuse candidates</li>
+      <li><strong>Manufacturing:</strong> built at UT's makerspace, limited in component manufacturing to 3D printers and laser cutters</li>
+    </ul>
+
+    <div class="modal-section-title">Key Decisions</div>
+    <ul class="modal-list">
+      <li>Used a two-motor tank drive over the stock AWD layout for zero-radius turning and traded four-wheel-drive traction for a more maneuverable two-wheel setup.</li>
+      <li>Designed the chassis to be fully invertible — mirrored upper/lower panels with wheels extending out to both faces so the robot stays drivable if flipped.</li>
+      <li>Split materials by function: PETG for the chassis (impact resistance), PLA for armor and sliders (lower friction).</li>
+      <li>Connected the weapon motor to the spinner through a belt rather than a rigid drivetrain, so the belt could slip under sudden impact, which protects the motor and gear train from impact loads at the cost of some weapon speed recovery time after a hit.</li>
+    </ul>
+
+    <div class="modal-section-title">Iteration</div>
+    <p class="modal-body-text">
+      Reworked the slider profile from flat to semicircular, cutting friction and letting the robot roll over arena
+      floor irregularities instead of snagging. Also swapped the weapon dowels from wood to metal to reduce
+      friction.
+    </p>
+
+    <div class="modal-section-title">Status &amp; Result</div>
+    <p class="modal-body-text">
+      The robot was successfully fabricated. The first match ended early due to an axle failure. After addressing
+      this, the robot won a later match in the competition.
+    </p>
+
+    <div class="modal-section-title">Retrospective</div>
+    <p class="modal-body-text">
+      Static FEA on 3D-printed parts can be inaccurate because it can't capture how print orientation changes
+      strength along different axes, and that gap is exactly what took the robot out of its first match despite a
+      clean analysis. With more time, the next version would use a lower-KV weapon motor built for torque instead
+      of RPM, choose print orientation based on actual load direction rather than default settings, and consider a
+      simpler direct-drive weapon system to remove a failure point.
+    </p>
+
+    <div class="modal-section-title">Failures &amp; Solutions</div>
+    <div class="fail-block">
+      <h4>Weapon motor mismatch</h4>
+      <p>The brushless motor selected was originally built for RC aircraft propellers — high KV rating (high RPM,
+      low torque). The motor couldn't produce enough torque to spin up the aluminum spinner's full mass, forcing my
+      team to cut material out of the spinner to reduce its rotational inertia and decreasing the effectiveness of
+      the weapon.</p>
+    </div>
+    <div class="fail-block">
+      <h4>Pulley failure and belt redesign</h4>
+      <p>My team originally drove the spinner through a 15-tooth pulley for a set gear ratio, but the motor couldn't
+      sustain the torque needed to turn it. I removed the pulley and ran the timing belt directly off the motor
+      shaft, letting the motor accelerate the belt through friction alone, which allowed our weapon to spin without
+      the motor stalling.</p>
+    </div>
+    <div class="fail-block">
+      <h4>Axle failure in competition</h4>
+      <p>FEA predicted the 3D-printed axles would survive normal driving loads with a wide margin (FOS of 37). In
+      the first match, one axle broke almost immediately. The likely cause was print orientation because the axles
+      were printed with layers running parallel to the shear plane, the weakest orientation for a 3D-printed part
+      under shear, which a standard static FEA using idealized isotropic material properties doesn't capture. This
+      was the clearest lesson of the project: passing FEA with a bulk material model doesn't guarantee real-world
+      strength if print orientation isn't accounted for too.</p>
+    </div>
+    </div>
+  </div>
+</div>
+
+<!-- 3. Banner Release Mechanism -->
+<div class="modal-overlay" id="project-banner-release" role="dialog" aria-modal="true" aria-labelledby="t-banner">
+  <div class="modal-card">
+    <div class="clip" aria-hidden="true"></div>
+    <button class="modal-close" type="button" aria-label="Close">&times;</button>
+    <div class="sheet">
+    <div class="modal-category">Mechanism Design / Competition Aircraft</div>
+    <h3 class="modal-title" id="t-banner">RC Plane Banner Release Mechanism</h3>
+    <div class="modal-org">Texas Flight : 09/2025 – 05/2026</div>
+    <div class="modal-tags"><span class="skill-tag">SolidWorks</span><span class="skill-tag">3D Printing</span><span class="skill-tag">Mechanism Design</span></div>
+    <p class="modal-lead">
+      Design a mechanism to release a banner mid-flight from an RC plane, actuated remotely through the plane's
+      controller.
+    </p>
+
+    <div class="modal-gallery single">
+      <figure class="gallery-item" data-lightbox="images/Final_Release_Mechanism.png" data-caption="RC plane banner release mechanism, final CAD design">
+        <img src="images/Final_Release_Mechanism.png" alt="RC plane banner release mechanism, final CAD design" >
+        <figcaption class="gallery-cap">Final CAD design: pin-slot release driven by a single servo.</figcaption>
+      </figure>
+    </div>
+
+    <div class="modal-section-title">Constraints</div>
+    <ul class="modal-list">
+      <li>Actuation limited to a single 180° rotating servo</li>
+      <li>Manufacturing limited to UT Makerspace tools (3D printing)</li>
+      <li>Mounting location, servo spec, and connecting hardware were still being finalized by the rest of the team in parallel with the mechanism's design, so the target interface and size envelope shifted several times during development</li>
+      <li>Overall aircraft dimensions were also still evolving during the mechanism's design phase, since the plane itself was being developed concurrently. This constrained how much size and weight budget was available for the mechanism at any given point</li>
+      <li>Budget: the only purchase allocated to this mechanism was the final servo</li>
+    </ul>
+
+    <div class="modal-section-title">Key Decisions</div>
+    <p class="modal-body-text">
+      Chose a pin-slot release mechanism over more complex alternatives for its simplicity and small footprint,
+      which was important given how little stable size budget was available while the aircraft design was still
+      moving.
+    </p>
+
+    <div class="modal-section-title">Iteration</div>
+    <p class="modal-body-text">
+      Initial design used a spool-and-rope system pulling a pin, sized to reliably release the banner without
+      failure. To cut weight and size, switched to a bent metal servo pushrod acting directly as the release pin,
+      connected straight to the servo, which was a smaller, lighter final design.
+    </p>
+
+    <div class="modal-section-title">Status &amp; Result</div>
+    <p class="modal-body-text">
+      Mechanism was completed and installed for competition use, and released up to 7kg successfully in prior
+      testing. In competition, high wind conditions bent the metal pin under load while the plane was flying into
+      the wind, preventing the clean release seen in testing. During the attempted landing with the banner still
+      attached, the battery was too low to power a release attempt, and the plane was blown off course and crashed
+      before the banner could be released.
+    </p>
+    <div class="modal-gallery">
+      <figure class="gallery-item">
+        <video controls playsinline preload="metadata">
+          <source src="images/Initial_Release_Mechanism_Design_Strength_Test.mp4" type="video/mp4">
+        </video>
+        <figcaption class="gallery-cap"><span class="rev-label">REV A</span>Initial Design — Strength Test</figcaption>
+      </figure>
+      <figure class="gallery-item">
+        <video controls playsinline preload="metadata">
+          <source src="images/Final_Release_Mechanism_Flight_Test.mp4" type="video/mp4">
+        </video>
+        <figcaption class="gallery-cap"><span class="rev-label">FINAL</span>Final Design — Flight Test</figcaption>
+      </figure>
+    </div>
+
+    <div class="modal-section-title">Retrospective</div>
+    <p class="modal-body-text">
+      The mechanism was tested and validated under calm, controlled conditions, but never against the load case
+      that actually mattered, like how it would perform under sustained wind-assisted force. The real lesson: a
+      component needs to be tested against the worst realistic condition it will face in the field, not just the
+      conditions available during isolated testing. In hindsight, I'd push harder for that kind of adversarial
+      testing before relying on a design in a live, uncontrolled environment, especially one with a moving target
+      size envelope, where there's a real temptation to test what's easy to test rather than what's most likely to
+      fail.
+    </p>
+    </div>
+  </div>
+</div>
+
+<!-- 4. Laundry Hamper -->
+<div class="modal-overlay" id="project-hamper" role="dialog" aria-modal="true" aria-labelledby="t-hamper">
+  <div class="modal-card">
+    <div class="clip" aria-hidden="true"></div>
+    <button class="modal-close" type="button" aria-label="Close">&times;</button>
+    <div class="sheet">
+    <div class="modal-category">Product Design / Airflow</div>
+    <h3 class="modal-title" id="t-hamper">Odor-Reducing Laundry Hamper</h3>
+    <div class="modal-org">10/2025 – Present</div>
+    <div class="modal-tags"><span class="skill-tag">Onshape</span><span class="skill-tag">Laser Cutting</span><span class="skill-tag">Airflow Design</span></div>
+    <p class="modal-lead">
+      Design a laundry hamper that actively reduces odor buildup in stored clothing through airflow management,
+      rather than passive storage.
+    </p>
+
+    <div class="modal-gallery single">
+      <figure class="gallery-item" data-lightbox="images/Hamper.jpeg" data-caption="Odor-reducing laundry hamper prototype">
+        <img src="images/Hamper.jpeg" alt="Odor-reducing laundry hamper prototype" >
+        <figcaption class="gallery-cap">First prototype, 24"×24"×24".</figcaption>
+      </figure>
+    </div>
+
+    <div class="modal-section-title">Constraints</div>
+    <ul class="modal-list">
+      <li><strong>Manufacturing:</strong> laser-cut wood, built at UT's makerspace, limited to the laser cutter's 24"×48" bed size</li>
+      <li><strong>Capacity:</strong> must hold multiple days' worth of clothing</li>
+      <li><strong>Final prototype footprint:</strong> 24"×24"×24"</li>
+    </ul>
+
+    <div class="modal-section-title">Key Decisions</div>
+    <ul class="modal-list">
+      <li>The airflow path pulls air in from the bottom and exhausts out the top to work with natural convection, with the fan mounted at the base.</li>
+      <li>Clothing is stored across multiple drawer-like levels, each made with holes in a waffle pattern, resting between two rail supports, which maximizes surface contact between airflow and clothing versus a solid shelf, while keeping the structure light.</li>
+    </ul>
+
+    <div class="modal-section-title">Iteration</div>
+    <p class="modal-body-text">
+      Originally included carbon filters on the exhaust air for extra odor control; cut them once testing showed the
+      exhaust air wasn't actually smelly, simplifying to fan-only airflow without losing performance. Reworked the box
+      edges into interlocking joints for easier, more repeatable assembly. Added a variable fan-speed controller so
+      airflow velocity could become a testable parameter for drying speed and odor reduction.
+    </p>
+
+    <div class="modal-section-title">Status &amp; Result</div>
+    <p class="modal-body-text">
+      First prototype built and under active testing. Early results show treated clothing smells noticeably better
+      than untreated control clothing after storage. Next: build a full-size version and validate with real users
+      using blind smell-comparisons against control clothing.
+    </p>
+
+    <div class="modal-section-title">Retrospective</div>
+    <p class="modal-body-text">
+      The clearest lesson so far has been to keep the design solution as simple as possible. Realizing we did not
+      need advanced odor management in our design like carbon filtration allowed us to keep the design simpler and
+      cheaper without sacrificing any results.
+    </p>
+    </div>
+  </div>
+</div>
+
+<!-- 5. Borrow Box -->
+<div class="modal-overlay" id="project-borrowbox" role="dialog" aria-modal="true" aria-labelledby="t-borrow">
+  <div class="modal-card">
+    <div class="clip" aria-hidden="true"></div>
+    <button class="modal-close" type="button" aria-label="Close">&times;</button>
+    <div class="sheet">
+    <div class="modal-category">Mechatronics / Rapid Prototyping</div>
+    <h3 class="modal-title" id="t-borrow">The Borrow Box — Automatic Pencil Dispenser</h3>
+    <div class="modal-org">Two-Day Rapid-Prototyping Competition : 10/2025 : Best Technical Design</div>
+    <div class="modal-tags"><span class="skill-tag">3D Printing</span><span class="skill-tag">Onshape</span><span class="skill-tag">Rapid Prototyping</span></div>
+    <p class="modal-lead">
+      Design and build a device that helps K-12 teachers manage classroom supplies with less instructional
+      interruption, in response to a competition prompt to design something that enhances teacher wellbeing and
+      effectiveness. Built during a two day rapid-prototyping competition.
+    </p>
+
+    <div class="modal-gallery">
+      <figure class="gallery-item" data-lightbox="images/Initial_Prototype.jpg" data-caption="The Borrow Box, initial prototype">
+        <img src="images/Initial_Prototype.jpg" alt="The Borrow Box, initial prototype" >
+        <figcaption class="gallery-cap"><span class="rev-label">DAY 1</span>Initial</figcaption>
+      </figure>
+      <figure class="gallery-item" data-lightbox="images/Final_Prototype.jpg" data-caption="The Borrow Box, final prototype">
+        <img src="images/Final_Prototype.jpg" alt="The Borrow Box, final prototype" >
+        <figcaption class="gallery-cap"><span class="rev-label">DAY 2</span>Final</figcaption>
+      </figure>
+    </div>
+
+    <div class="modal-section-title">Constraints</div>
+    <ul class="modal-list">
+      <li>9 hour initial prototype build window, from concept sketch to functional prototype</li>
+      <li>Limited materials and tools, fixed by the competition</li>
+      <li>Built entirely at UT's makerspace, limited to 3D printers and laser cutters</li>
+      <li>Must reliably dispense from a stock of 8+ pencils without jamming</li>
+      <li>Collaboratively designed in Onshape with a team of 4 people</li>
+    </ul>
+
+    <div class="modal-section-title">Key Decisions</div>
+    <ul class="modal-list">
+      <li>Gravity-fed intake and dispensing mechanism with a servo for controlled release, which was chosen for mechanical simplicity and speed to build under a tight time limit.</li>
+      <li>Color sensor with color-coded paper slips to identify which student borrowed a pencil. This decision was driven by the parts actually available to us rather than being the "ideal" ID method.</li>
+      <li>LED indicator for checked-out status and pencil tracking, which was a simple, physical, solution that was quicker to assemble than a screen or app-based tracker.</li>
+    </ul>
+
+    <div class="modal-section-title">Iteration</div>
+    <p class="modal-body-text">
+      Day one, we built a smaller proof-of-concept dispenser with two LEDs to demonstrate the check-out logic and
+      tracking capabilities for two students. From there, two real problems forced design changes: our first
+      3D-printed pencil-holding barrel didn't have slots wide enough to actually hold pencils, and time pressure
+      meant switching to a laser-cut version instead, which was a less precise fit, but one we could fabricate fast
+      enough to finish. Separately, the first intake was too wide, which let multiple pencils jam together going in;
+      narrowing the intake in the final version solved it. The final prototype held 8+ pencils, scaled to a real
+      classroom-sized group.
+    </p>
+
+    <div class="modal-section-title">Status &amp; Result</div>
+    <p class="modal-body-text">
+      Over the two day competition, we built two functional prototypes, presented our designs twice, and were
+      awarded the Best Technical Design among 10+ competing teams.
+    </p>
+
+    <div class="modal-section-title">Retrospective</div>
+    <p class="modal-body-text">
+      The biggest problem of the competition wasn't a design flaw, it was a manufacturing-time miscalculation:
+      choosing to 3D print the largest component (the pencil barrel) ate hours we didn't have, pushing final assembly
+      to the last minutes and leaving us gluing pieces together under pressure. The real lesson from building
+      end-to-end in under a day: under tight time constraints, a design has to be optimized for manufacturability as
+      much as for performance, because the best-performing part on paper is worthless if you can't finish building it
+      in time.
+    </p>
+    </div>
+  </div>
+</div>
+
+<!-- Resume viewer -->
+<div class="modal-overlay" id="modal-pdf" role="dialog" aria-modal="true" aria-label="Resume">
+  <div class="modal-card pdf-card">
+    <div class="clip" aria-hidden="true"></div>
+    <button class="modal-close" type="button" aria-label="Close">&times;</button>
+    <div class="sheet">
+      <div class="pdf-bar">
+        <strong>James Seidel, Resume</strong>
+        <a id="pdfDirectLink" href="#" target="_blank" rel="noopener" class="btn">Open in new tab</a>
+      </div>
+      <iframe id="pdfFrame" src="about:blank" title="Resume PDF"></iframe>
+    </div>
+  </div>
+</div>
+
+<!-- Lightbox -->
+<div class="lightbox-overlay" id="lightbox-overlay" role="dialog" aria-modal="true" aria-label="Enlarged image">
+  <div class="lightbox-box">
+    <button class="lightbox-close" type="button" aria-label="Close image">&times;</button>
+    <img id="lightbox-img" class="lightbox-img" src="" alt="">
+    <p id="lightbox-caption" class="lightbox-caption"></p>
+  </div>
+</div>
+
+<script>
+(function () {
+  const root = document.documentElement;
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const finePointer = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+
+  /* ---------- Dark mode toggle ---------- */
+  const toggle = document.getElementById('themeToggle');
+  const isDark = () => root.getAttribute('data-theme') === 'dark';
+  const sync = () => toggle.setAttribute('aria-checked', String(isDark()));
+  sync();
+  toggle.addEventListener('click', () => {
+    const next = isDark() ? 'light' : 'dark';
+    root.setAttribute('data-theme', next);
+    try { localStorage.setItem('theme', next); } catch (e) {}
+    sync();
+    if (window.__updateViewerTheme) window.__updateViewerTheme();
+  });
+
+  /* ---------- Caliper rail: slider follows scroll ---------- */
+  const slider = document.getElementById('caliperSlider');
+  const lcd = document.getElementById('caliperLcd');
+  const wheel = document.getElementById('caliperWheel');
+  // Scale on the beam: 1 mm minor ticks, 5 mm mid, 10 mm major with cm numbers.
+  // Zero sits at the fixed jaw's measuring face, so the tick at the slider's top edge
+  // always matches the LCD reading.
+  const PX_PER_MM = 3.7795, ZERO_Y = 30;
+  const scaleCanvas = document.getElementById('beamScale');
+  function drawScale() {
+    const dpr = devicePixelRatio || 1, w = 30, h = innerHeight;
+    scaleCanvas.width = w * dpr; scaleCanvas.height = h * dpr;
+    const c = scaleCanvas.getContext('2d');
+    c.setTransform(dpr, 0, 0, dpr, 0, 0);
+    c.clearRect(0, 0, w, h);
+    c.fillStyle = '#23272B';
+    c.font = "700 9px 'Archivo', sans-serif";
+    c.textAlign = 'right'; c.textBaseline = 'middle';
+    for (let mm = 0; ZERO_Y + mm * PX_PER_MM < h; mm++) {
+      const y = Math.round(ZERO_Y + mm * PX_PER_MM);
+      const len = mm % 10 === 0 ? 12 : (mm % 5 === 0 ? 8 : 5);
+      c.fillRect(w - len, y, len, mm % 10 === 0 ? 1.4 : 1);
+      if (mm % 10 === 0 && mm > 0) c.fillText(String(mm / 10), w - 14, y + 0.5);
+    }
+  }
+  drawScale();
+  addEventListener('resize', drawScale);
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(drawScale);
+
+  function updateRail() {
+    const max = document.documentElement.scrollHeight - innerHeight;
+    const p = max > 0 ? Math.min(1, (scrollY || 0) / max) : 0;
+    const travel = innerHeight - 30 - 92 - 10;
+    const y = Math.round(p * travel);
+    slider.style.transform = `translateY(${y}px)`;
+    lcd.textContent = (y / PX_PER_MM).toFixed(1);       // jaw gap in mm, same scale as the beam
+    wheel.style.transform = `rotate(${y * 3}deg)`;
+  }
+  let rq = false;
+  addEventListener('scroll', () => { if (!rq) { rq = true; requestAnimationFrame(() => { updateRail(); rq = false; }); } }, { passive: true });
+  addEventListener('resize', updateRail);
+  updateRail();
+
+  /* Caliper works as a scrollbar: drag the slider, or click the beam to jump there */
+  const rail = document.querySelector('.rail');
+  const SLIDER_TOP = 30, SLIDER_H = 92;
+  const railTravel = () => innerHeight - SLIDER_TOP - SLIDER_H - 10;
+  const maxScroll = () => document.documentElement.scrollHeight - innerHeight;
+  const scrollForY = (y) => Math.max(0, Math.min(1, y / railTravel())) * maxScroll();
+  let grabOffset = null;
+  slider.addEventListener('pointerdown', (e) => {
+    e.preventDefault(); e.stopPropagation();
+    grabOffset = e.clientY - slider.getBoundingClientRect().top;
+    slider.setPointerCapture(e.pointerId);
+    rail.classList.add('dragging');
+  });
+  slider.addEventListener('pointermove', (e) => {
+    if (grabOffset === null) return;
+    window.scrollTo({ top: scrollForY(e.clientY - grabOffset - SLIDER_TOP), behavior: 'instant' });
+  });
+  const endGrab = () => { grabOffset = null; rail.classList.remove('dragging'); };
+  slider.addEventListener('pointerup', endGrab);
+  slider.addEventListener('pointercancel', endGrab);
+  rail.addEventListener('pointerdown', (e) => {
+    if (e.target.closest('.slider')) return;
+    // centre the slider on the click point
+    window.scrollTo({ top: scrollForY(e.clientY - SLIDER_TOP - SLIDER_H / 2), behavior: reduceMotion ? 'instant' : 'smooth' });
+  });
+
+  /* ---------- Screw-mounted cards: slight random tilt (CSS straightens on hover) ---------- */
+  document.querySelectorAll('.mounted').forEach((el, i) => {
+    const widthScale = Math.min(1, 360 / Math.max(1, el.offsetWidth));
+    const t = (0.5 + Math.random() * 0.8) * (i % 2 ? 1 : -1) * widthScale;
+    el.style.setProperty('--tilt', t.toFixed(2) + 'deg');
+  });
+
+
+  /* ---------- Outside of Engineering: photo stack ---------- */
+  (function () {
+    const stage = document.getElementById('printStage');
+    if (!stage) return;
+    const prints = [...stage.querySelectorAll('.print')];
+    const count = document.getElementById('printCount');
+    const pose = [ // top -> back: offsets + tilt for the visible pile
+      { dx: 0,   dy: 0,  r: -1.5 },
+      { dx: 18,  dy: 10, r: 3.5 },
+      { dx: -22, dy: 16, r: -5 },
+      { dx: 10,  dy: 22, r: 6 }
+    ];
+    let order = prints.map((_, i) => i);
+    let busy = false;
+    function layout() {
+      order.forEach((pi, depth) => {
+        const el = prints[pi], p = pose[Math.min(depth, pose.length - 1)];
+        el.style.setProperty('--dx', p.dx + 'px');
+        el.style.setProperty('--dy', p.dy + 'px');
+        el.style.setProperty('--r', p.r + 'deg');
+        el.style.zIndex = String(prints.length - depth);
+        el.classList.toggle('top', depth === 0);
+        el.classList.toggle('hidden', depth >= pose.length);
+        el.setAttribute('aria-hidden', depth === 0 ? 'false' : 'true');
+      });
+      count.textContent = `${order[0] + 1} / ${prints.length}`;
+    }
+    const wait = (ms) => new Promise(r => setTimeout(r, reduceMotion ? 0 : ms));
+    async function next() {
+      if (busy) return; busy = true;
+      const top = prints[order[0]];
+      top.classList.add('leaving');            // slide off to the right
+      await wait(330);
+      order.push(order.shift());               // goes to the back of the pile
+      top.classList.remove('leaving');
+      layout();                                // tucks in behind
+      await wait(250); busy = false;
+    }
+    async function prev() {
+      if (busy) return; busy = true;
+      order.unshift(order.pop());
+      const el = prints[order[0]];
+      el.style.zIndex = String(prints.length + 1);
+      el.classList.remove('hidden');
+      el.classList.add('entering');            // start off to the left, on top
+      void el.offsetWidth;
+      el.classList.remove('entering');
+      layout();
+      await wait(450); busy = false;
+    }
+    document.getElementById('printNext').addEventListener('click', next);
+    document.getElementById('printPrev').addEventListener('click', prev);
+    stage.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowRight') { e.preventDefault(); next(); }
+      if (e.key === 'ArrowLeft')  { e.preventDefault(); prev(); }
+      if (e.key === 'Enter') { const t = prints[order[0]]; openLightbox(t.dataset.full, t.querySelector('figcaption').textContent); }
+    });
+    // swipe on touch screens
+    let sx = null;
+    stage.addEventListener('pointerdown', (e) => { sx = e.clientX; });
+    stage.addEventListener('pointerup', (e) => {
+      if (sx === null) return;
+      const dx = e.clientX - sx; sx = null;
+      if (Math.abs(dx) > 40) { dx < 0 ? next() : prev(); return; }
+      const t = e.target.closest('.print.top');
+      if (t) openLightbox(t.dataset.full, t.querySelector('figcaption').textContent);
+    });
+    layout();
+  })();
+
+  /* ---------- Spec-sheet modals (deep links + focus return) ---------- */
+  let lastFocus = null;
+  const projectIds = new Set([...document.querySelectorAll('.modal-overlay')].map(m => m.id).filter(id => id.startsWith('project-')));
+  function openModal(id, opts = {}) {
+    const m = document.getElementById(id); if (!m) return;
+    lastFocus = document.activeElement;
+    m.classList.add('active');
+    document.body.style.overflow = 'hidden';
+    const sheet = m.querySelector('.sheet'); if (sheet) sheet.scrollTop = 0;
+    const c = m.querySelector('.modal-close'); if (c) c.focus({ preventScroll: true });
+    if (projectIds.has(id) && !opts.fromHash) history.replaceState(null, '', '#' + id);
+  }
+  function closeModal(id) {
+    const m = document.getElementById(id);
+    if (!m || !m.classList.contains('active')) return;
+    m.classList.remove('active');
+    m.querySelectorAll('video').forEach(v => v.pause());
+    if (id === 'modal-pdf') document.getElementById('pdfFrame').src = 'about:blank';
+    if (!document.querySelector('.modal-overlay.active')) document.body.style.overflow = '';
+    if (projectIds.has(id) && location.hash === '#' + id) history.replaceState(null, '', location.pathname + location.search);
+    if (lastFocus && lastFocus.focus) lastFocus.focus({ preventScroll: true });
+  }
+
+  document.addEventListener('click', (e) => {
+    const opener = e.target.closest('[data-modal]');
+    if (opener) { e.preventDefault(); openModal(opener.dataset.modal); return; }
+    const pdf = e.target.closest('[data-pdf]');
+    if (pdf) {
+      document.getElementById('pdfFrame').src = pdf.dataset.pdf;
+      document.getElementById('pdfDirectLink').href = pdf.dataset.pdf;
+      openModal('modal-pdf'); return;
+    }
+    const cb = e.target.closest('.modal-close');
+    if (cb) { closeModal(cb.closest('.modal-overlay').id); return; }
+    if (e.target.classList && e.target.classList.contains('modal-overlay')) { closeModal(e.target.id); return; }
+    const lb = e.target.closest('[data-lightbox]');
+    if (lb) { openLightbox(lb.dataset.lightbox, lb.dataset.caption); return; }
+    if (e.target.closest('.lightbox-close') || e.target.id === 'lightbox-overlay') closeLightbox();
+  });
+  document.querySelectorAll('[data-lightbox]').forEach(el => { el.tabIndex = 0; el.setAttribute('role', 'button'); });
+  document.addEventListener('keydown', (e) => {
+    const t = e.target;
+    if ((e.key === 'Enter' || e.key === ' ') && t.matches && t.matches('[role="button"][data-modal], [data-lightbox]')) { e.preventDefault(); t.click(); return; }
+    if (e.key === 'Escape') {
+      if (document.getElementById('lightbox-overlay').classList.contains('active')) { closeLightbox(); return; }
+      document.querySelectorAll('.modal-overlay.active').forEach(m => closeModal(m.id));
+    }
+  });
+  function openFromHash() {
+    const id = decodeURIComponent(location.hash.slice(1));
+    if (projectIds.has(id)) { document.getElementById('projects').scrollIntoView(); openModal(id, { fromHash: true }); }
+  }
+  addEventListener('hashchange', openFromHash);
+  openFromHash();
+
+  function openLightbox(src, cap) {
+    const img = document.getElementById('lightbox-img');
+    img.src = src; img.alt = cap || '';
+    document.getElementById('lightbox-caption').textContent = cap || '';
+    document.getElementById('lightbox-overlay').classList.add('active');
+    document.querySelector('.lightbox-close').focus({ preventScroll: true });
+  }
+  function closeLightbox() {
+    document.getElementById('lightbox-overlay').classList.remove('active');
+    document.getElementById('lightbox-img').src = '';
+  }
+
+  /* =======================================================
+     3D PRINTER VIEWER
+     Export STLs from SolidWorks (Save As > STL) into /models/
+     with the filenames below; they replace the stand-ins.
+     ======================================================= */
+  const mCanvas = document.getElementById('modelCanvas');
+  const chamber = document.querySelector('.chamber');
+  if (!window.THREE) { mCanvas.style.display = 'none'; document.getElementById('viewerFallback').style.display = 'flex'; return; }
+
+  let renderer, scene, camera, pivot, holder = null;
+  let zoom = 1, dragging = false, lastX = 0, lastY = 0, idx = 0, visible = true, pinchStart = null, pinchZoom = 1;
+  const BED_Y = -0.95;
+
+  const accentHex = () => 0xBF5700;
+  const printMat = () => new THREE.MeshStandardMaterial({ color: accentHex(), roughness: 0.5, metalness: 0.05 });
+  const metalMat = () => new THREE.MeshStandardMaterial({ color: 0xA3AAB1, roughness: 0.25, metalness: 0.8 });
+  const darkMat  = () => new THREE.MeshStandardMaterial({ color: 0x1E2125, roughness: 0.75, metalness: 0.05 });
+  const propMat  = () => new THREE.MeshStandardMaterial({ color: 0x9AA1A8, roughness: 0.4, transparent: true, opacity: 0.35 });
+  const tag = (m, k) => { m.userData.kind = k; return m; };
+
+  const models = [
+    {
+      title: 'VTOL DRONE INTERCEPTOR', modal: 'project-quadcopter',
+      stlUrl: 'models/drone_interceptor.STL', upAxis: 'y',
+      specs: [['AIRFRAME', '~3" x 12" bullet fuselage'], ['PROPULSION', '5" props / 1960KV / 6S']],
+      build() {
+        const g = new THREE.Group(); const R = 0.22, L = 1.5;
+        const fus = tag(new THREE.Mesh(new THREE.CylinderGeometry(R, R, L, 32), printMat()), 'print'); fus.rotation.z = Math.PI / 2; g.add(fus);
+        const nose = tag(new THREE.Mesh(new THREE.SphereGeometry(R, 32, 16, 0, Math.PI * 2, 0, Math.PI / 2), printMat()), 'print');
+        nose.scale.set(1, 1.8, 1); nose.rotation.z = -Math.PI / 2; nose.position.x = L / 2; g.add(nose);
+        const wing = tag(new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.035, 2.0), printMat()), 'print'); wing.position.set(-0.05, -0.02, 0); g.add(wing);
+        [45, 135, 225, 315].forEach(deg => {
+          const a = deg * Math.PI / 180, al = 0.62;
+          const arm = tag(new THREE.Mesh(new THREE.BoxGeometry(0.12, al, 0.035), printMat()), 'print');
+          arm.position.set(0.42, Math.cos(a) * (R + al / 2), Math.sin(a) * (R + al / 2)); arm.rotation.x = -a; g.add(arm);
+          const ty = Math.cos(a) * (R + al), tz = Math.sin(a) * (R + al);
+          const motor = tag(new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 0.14, 20), metalMat()), 'metal'); motor.rotation.z = Math.PI / 2; motor.position.set(0.5, ty, tz); g.add(motor);
+          const prop = new THREE.Mesh(new THREE.CylinderGeometry(0.34, 0.34, 0.01, 32), propMat()); prop.rotation.z = Math.PI / 2; prop.position.set(0.59, ty, tz); g.add(prop);
+        });
+        const fin = new THREE.Shape(); fin.moveTo(0.05, 0); fin.lineTo(-0.32, 0); fin.lineTo(-0.5, 0.42); fin.lineTo(-0.32, 0.42); fin.lineTo(0.05, 0);
+        const fg = new THREE.ExtrudeGeometry(fin, { depth: 0.03, bevelEnabled: false }); fg.translate(0, 0, -0.015);
+        [0, 90, 180, 270].forEach(deg => {
+          const h = new THREE.Group();
+          const f = tag(new THREE.Mesh(fg, printMat()), 'print'); f.position.set(-L / 2 + 0.3, R - 0.02, 0); h.add(f);
+          const leg = tag(new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.12, 10), darkMat()), 'dark'); leg.rotation.z = Math.PI / 2; leg.position.set(-L / 2 - 0.26, R + 0.4, 0); h.add(leg);
+          h.rotation.x = deg * Math.PI / 180; g.add(h);
+        });
+        return g;
+      }
+    },
+    {
+      title: 'BEETLEWEIGHT COMBAT ROBOT', modal: 'project-beetleweight',
+      stlUrl: 'models/beetleweight.STL', upAxis: 'y',
+      specs: [['CLASS', '3 lb SPARC beetleweight'], ['WEAPON', 'Belt-driven spinner']],
+      build() {
+        const g = new THREE.Group();
+        g.add(tag(new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.3, 1.1), printMat()), 'print'));
+        [-0.6, 0.6].forEach(z => { const r = tag(new THREE.Mesh(new THREE.BoxGeometry(1.7, 0.34, 0.06), printMat()), 'print'); r.position.set(0.05, 0, z); g.add(r); });
+        const wg = new THREE.CylinderGeometry(0.26, 0.26, 0.16, 28); wg.rotateX(Math.PI / 2);
+        [-0.72, 0.72].forEach(z => { const w = tag(new THREE.Mesh(wg, darkMat()), 'dark'); w.position.set(-0.35, 0, z); g.add(w); });
+        const drum = tag(new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.15, 1.0, 28), metalMat()), 'metal'); drum.rotation.x = Math.PI / 2; drum.position.set(0.95, 0, 0); g.add(drum);
+        [0, Math.PI].forEach(a => { const t = tag(new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.12, 0.9), metalMat()), 'metal'); t.position.set(0.95 + Math.cos(a) * 0.18, Math.sin(a) * 0.18, 0); t.rotation.z = a; g.add(t); });
+        const belt = tag(new THREE.Mesh(new THREE.TorusGeometry(0.22, 0.02, 8, 32), darkMat()), 'dark'); belt.scale.set(1.6, 0.5, 1); belt.position.set(0.7, 0.16, 0.42); g.add(belt);
+        return g;
+      }
+    },
+    {
+      title: 'REMORA TOWED SENSOR', modal: 'project-remora',
+      stlUrl: 'models/dbf_sensor.STL', upAxis: 'y',
+      specs: [['BODY', '3.1" dia x 18.6" long'], ['SIM DRAG', '~0.1 N']],
+      build() {
+        const g = new THREE.Group();          // built along +Y (6:1 fineness), nose rotated to +X
+        const R = 0.5;
+        const pts = [];
+        for (let i = 0; i <= 14; i++) { const t = i / 14; pts.push(new THREE.Vector2(R * Math.sin(t * Math.PI / 2), 3.0 - t * 1.2)); }
+        pts.push(new THREE.Vector2(R, -2.2));
+        pts.push(new THREE.Vector2(R * 0.6, -3.0));
+        pts.push(new THREE.Vector2(0, -3.0));
+        g.add(tag(new THREE.Mesh(new THREE.LatheGeometry(pts, 48), printMat()), 'print'));
+        const fin = new THREE.Shape();
+        fin.moveTo(0, -1.95); fin.lineTo(0, -2.85); fin.lineTo(0.55, -3.0); fin.lineTo(0.55, -2.55); fin.lineTo(0, -1.95);
+        const fg = new THREE.ExtrudeGeometry(fin, { depth: 0.04, bevelEnabled: false }); fg.translate(0, 0, -0.02);
+        [0, 90, 180, 270].forEach(deg => {
+          const h = new THREE.Group();
+          const f = tag(new THREE.Mesh(fg, printMat()), 'print'); f.position.x = R * 0.72; h.add(f);
+          h.rotation.y = deg * Math.PI / 180; g.add(h);
+        });
+        const eye = tag(new THREE.Mesh(new THREE.TorusGeometry(0.07, 0.022, 8, 20), metalMat()), 'metal');
+        eye.position.y = 3.06; g.add(eye);
+        g.rotation.z = -Math.PI / 2;
+        return g;
+      }
+    }
+  ];
+
+  function initViewer() {
+    const w = chamber.clientWidth, h = chamber.clientHeight;
+    scene = new THREE.Scene();
+    camera = new THREE.PerspectiveCamera(36, w / h, 0.1, 100);
+    camera.position.set(0, 1.1, 5.2); camera.lookAt(0, -0.25, 0);
+    renderer = new THREE.WebGLRenderer({ canvas: mCanvas, antialias: true, alpha: true });
+    renderer.setSize(w, h, false);
+    renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+    scene.add(new THREE.AmbientLight(0xffffff, 0.7));
+    const key = new THREE.DirectionalLight(0xffffff, 0.9); key.position.set(4, 8, 6); scene.add(key);
+    const warm = new THREE.PointLight(0xFFB25C, 0.5, 12); warm.position.set(-3, 2.5, 2); scene.add(warm);
+
+    pivot = new THREE.Group(); pivot.rotation.y = -0.6; scene.add(pivot);
+    // build plate: textured sheet + grid
+    const plate = new THREE.Mesh(new THREE.BoxGeometry(3.2, 0.06, 3.2), new THREE.MeshStandardMaterial({ color: 0x2B2A27, roughness: 0.9 }));
+    plate.position.y = BED_Y - 0.03; pivot.add(plate);
+    const grid = new THREE.GridHelper(3.2, 16, 0x8A6A3A, 0x4A4640); grid.position.y = BED_Y + 0.002; pivot.add(grid);
+
+    models.forEach((_, k) => fetchSTL(k));
+
+    // Card/sheet image for Remora: use images/Remora.png if present, else a render of the STL
+    let remoraShot = null;
+    const pending = new Set();
+    window.__useRemoraShot = (img) => {
+      img.onerror = null;
+      if (remoraShot) applyShot(img); else pending.add(img);
+    };
+    function applyShot(img) {
+      img.src = remoraShot;
+      const fig = img.closest('[data-lightbox]'); if (fig) fig.dataset.lightbox = remoraShot;
+    }
+    const remoraIdx = models.findIndex(m => m.modal === 'project-remora');
+    fetchSTL(remoraIdx).then((geo) => {
+      try {
+        const W = 900, H = 480;
+        const r = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true });
+        r.setPixelRatio(1); r.setSize(W, H, false);
+        const sc = new THREE.Scene();
+        sc.add(new THREE.AmbientLight(0xffffff, 0.75));
+        const k = new THREE.DirectionalLight(0xffffff, 0.9); k.position.set(3, 6, 6); sc.add(k);
+        const mesh = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ color: 0xBF5700, roughness: 0.5, metalness: 0.05 }));
+        geo.computeBoundingBox();
+        const size = new THREE.Vector3(), c = new THREE.Vector3();
+        geo.boundingBox.getSize(size); geo.boundingBox.getCenter(c);
+        mesh.position.copy(c).negate();
+        const g = new THREE.Group(); g.add(mesh);
+        const lay = new THREE.Group(); lay.add(g);
+        if (size.y >= size.x && size.y >= size.z) g.rotation.z = -Math.PI / 2;   // lie it down, nose to the right
+        else if (size.z >= size.x) g.rotation.y = Math.PI / 2;
+        lay.rotation.set(0.35, -0.45, 0.06);
+        lay.scale.setScalar(6.2 / Math.max(size.x, size.y, size.z));
+        sc.add(lay);
+        const cam = new THREE.PerspectiveCamera(28, W / H, 0.1, 100); cam.position.set(0, 0, 9);
+        r.render(sc, cam);
+        remoraShot = r.domElement.toDataURL('image/png');
+        r.dispose();
+        pending.forEach(applyShot); pending.clear();
+        document.querySelectorAll('img.remora-shot').forEach(img => { if (img.complete && img.naturalWidth === 0) applyShot(img); });
+      } catch (e) { console.warn('[viewer] snapshot failed', e); }
+    }).catch(() => {});
+    loadModel(0);
+    if (reduceMotion) renderOnce(); else loop();
+  }
+
+  function place(obj) {
+    const box = new THREE.Box3().setFromObject(obj);
+    const size = new THREE.Vector3(); box.getSize(size);
+    const c = new THREE.Vector3(); box.getCenter(c);
+    const s = 2.3 / (Math.max(size.x, size.y, size.z) || 1);
+    obj.position.sub(c);
+    const h = new THREE.Group(); h.add(obj); h.scale.setScalar(s);
+    h.position.y = BED_Y + (size.y * s) / 2;   // sit on the plate
+    if (holder) pivot.remove(holder);
+    holder = h; pivot.add(h);
+    renderOnce();
+  }
+
+  // STL cache: each file is fetched once (all three start downloading when the viewer starts),
+  // so switching models is instant. Stand-ins only appear if a file can't be loaded.
+  const stlCache = {};
+  function fetchSTL(i) {
+    if (stlCache[i]) return stlCache[i];
+    const m = models[i];
+    const candidates = [m.stlUrl, m.stlUrl.replace(/\.STL$/, '.stl')].filter((u, k, arr) => arr.indexOf(u) === k);
+    stlCache[i] = new Promise((resolve, reject) => {
+      if (!THREE.STLLoader || location.protocol === 'file:') return reject({ local: true });
+      const tryLoad = (k) => new THREE.STLLoader().load(candidates[k], (geo) => {
+        if (m.upAxis === 'z') geo.rotateX(-Math.PI / 2);
+        geo.computeVertexNormals();
+        resolve(geo);
+      }, undefined, (err) => {
+        if (k + 1 < candidates.length) return tryLoad(k + 1);
+        console.warn('[viewer] could not load', candidates.map(u => new URL(u, location.href).href), err);
+        reject(err);
+      });
+      tryLoad(0);
+    });
+    stlCache[i].catch(() => {});
+    return stlCache[i];
+  }
+
+  function loadModel(i) {
+    const m = models[i];
+    const status = document.getElementById('stlStatus');
+    document.getElementById('lcdIndex').textContent = `${i + 1}/${models.length}`;
+    document.getElementById('modelTitle').textContent = m.title;
+    document.getElementById('specLabel1').textContent = m.specs[0][0];
+    document.getElementById('specVal1').textContent = m.specs[0][1];
+    document.getElementById('specLabel2').textContent = m.specs[1][0];
+    document.getElementById('specVal2').textContent = m.specs[1][1];
+    document.getElementById('benchOpenBtn').style.visibility = m.modal ? 'visible' : 'hidden';
+
+    // clear the plate while loading
+    if (holder) { pivot.remove(holder); holder = null; renderOnce(); }
+    status.textContent = 'STL: LOADING';
+
+    fetchSTL(i).then((geo) => {
+      if (idx !== i) return;
+      place(tag(new THREE.Mesh(geo, printMat()), 'print'));
+      status.textContent = 'STL: LOADED';
+    }).catch((err) => {
+      if (idx !== i) return;
+      place(m.build());                                   // fallback stand-in
+      const code = err && err.target && err.target.status;
+      status.textContent = err && err.local ? 'STL: OPEN VIA SITE' : (code ? `STL: ${code} MISSING` : 'STL: LOAD ERROR');
+    });
+  }
+
+  window.__updateViewerTheme = () => {
+    if (!pivot) return;
+    pivot.traverse(o => { if (o.isMesh && o.userData.kind === 'print') o.material = printMat(); });
+    renderOnce();
+  };
+
+  const step = (d) => { idx = (idx + d + models.length) % models.length; loadModel(idx); };
+  document.getElementById('prevModelBtn').addEventListener('click', () => step(-1));
+  document.getElementById('nextModelBtn').addEventListener('click', () => step(1));
+  document.getElementById('benchOpenBtn').addEventListener('click', () => { if (models[idx].modal) openModal(models[idx].modal); });
+
+  function renderOnce() {
+    if (!renderer) return;
+    const dx = Math.round(pivot.rotation.x * 180 / Math.PI) % 360;
+    const dy = ((Math.round(pivot.rotation.y * 180 / Math.PI) % 360) + 360) % 360;
+    document.getElementById('modelCoords').textContent = `ROT ${dx}/${dy}  ZOOM ${Math.round(zoom * 100)}%`;
+    renderer.render(scene, camera);
+  }
+  function loop() {
+    requestAnimationFrame(loop);
+    if (!visible || document.hidden) return;
+    if (!dragging) pivot.rotation.y += 0.004;
+    if (holder) holder.traverse(o => { if (o.userData.tick) o.userData.tick(performance.now()); });
+    renderOnce();
+  }
+  new IntersectionObserver(([e]) => { visible = e.isIntersecting; }).observe(chamber);
+
+  addEventListener('resize', () => {
+    if (!renderer) return;
+    const w = chamber.clientWidth, h = chamber.clientHeight;
+    camera.aspect = w / h; camera.updateProjectionMatrix(); renderer.setSize(w, h, false); renderOnce();
+  });
+  const setZoom = (z) => {
+    zoom = Math.min(Math.max(z, 0.6), 1.9);
+    camera.position.set(0, 1.1 / zoom, 5.2 / zoom); camera.lookAt(0, -0.25, 0); renderOnce();
+  };
+  mCanvas.addEventListener('wheel', (e) => { e.preventDefault(); setZoom(zoom - e.deltaY * 0.001); }, { passive: false });
+  mCanvas.addEventListener('pointerdown', (e) => { dragging = true; lastX = e.clientX; lastY = e.clientY; mCanvas.setPointerCapture(e.pointerId); });
+  mCanvas.addEventListener('pointermove', (e) => {
+    if (!dragging || pinchStart) return;
+    pivot.rotation.y += (e.clientX - lastX) * 0.009;
+    pivot.rotation.x = Math.max(-0.5, Math.min(0.9, pivot.rotation.x + (e.clientY - lastY) * 0.006));
+    lastX = e.clientX; lastY = e.clientY; renderOnce();
+  });
+  ['pointerup', 'pointercancel'].forEach(t => mCanvas.addEventListener(t, () => { dragging = false; }));
+  mCanvas.addEventListener('touchstart', (e) => {
+    if (e.touches.length === 2) { pinchStart = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY); pinchZoom = zoom; }
+  }, { passive: true });
+  mCanvas.addEventListener('touchmove', (e) => {
+    if (e.touches.length === 2 && pinchStart) setZoom(pinchZoom * Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY) / pinchStart);
+  }, { passive: true });
+  mCanvas.addEventListener('touchend', (e) => { if (e.touches.length < 2) pinchStart = null; });
+
+  try { initViewer(); }
+  catch (err) { mCanvas.style.display = 'none'; document.getElementById('viewerFallback').style.display = 'flex'; }
+})();
+</script>
+</body>
+</html>
